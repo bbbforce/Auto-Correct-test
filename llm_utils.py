@@ -1,0 +1,100 @@
+"""
+LLM 输出解析工具 —— 鲁棒地从 LLM 响应中提取 JSON 并转换为 Pydantic 模型。
+"""
+
+from __future__ import annotations
+import json
+import re
+import logging
+from typing import Type, TypeVar
+
+from pydantic import BaseModel, ValidationError
+
+logger = logging.getLogger(__name__)
+
+T = TypeVar("T", bound=BaseModel)
+
+
+def extract_json_from_llm_response(text: str) -> dict:
+    """从 LLM 响应文本中鲁棒地提取 JSON 对象。
+
+    处理策略（按顺序尝试）：
+    1. 直接 json.loads
+    2. 去除 markdown 代码块包裹后 json.loads
+    3. 用正则提取最外层 {} 中的内容
+    4. 尝试修复常见截断问题（补全大括号）
+
+    Raises:
+        ValueError: 所有策略均失败时抛出
+    """
+    if not text or not text.strip():
+        raise ValueError("LLM 返回了空内容")
+
+    cleaned = text.strip()
+
+    # 策略 1：直接解析
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # 策略 2：去除 markdown 代码块
+    md_pattern = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
+    md_match = md_pattern.search(cleaned)
+    if md_match:
+        try:
+            return json.loads(md_match.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+
+    # 策略 3：正则提取 {} 中的内容
+    brace_pattern = re.compile(r"\{.*\}", re.DOTALL)
+    brace_match = brace_pattern.search(cleaned)
+    if brace_match:
+        candidate = brace_match.group(0)
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            # 策略 4：尝试修复截断（补全大括号）
+            open_count = candidate.count("{")
+            close_count = candidate.count("}")
+            if open_count > close_count:
+                candidate += "}" * (open_count - close_count)
+                try:
+                    return json.loads(candidate)
+                except json.JSONDecodeError:
+                    pass
+
+    # 策略 5：贪婪匹配失败，逐个尝试所有 {...} 子匹配（从最后一个开始，通常是最终输出）
+    all_braces = re.findall(r"\{[^{}]*\}", cleaned)
+    for candidate in reversed(all_braces):
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+
+    raise ValueError(
+        f"无法从 LLM 响应中提取有效 JSON。原始响应前200字符：{cleaned[:200]}"
+    )
+
+
+def parse_llm_response(text: str, model_class: Type[T]) -> T:
+    """从 LLM 响应中提取 JSON 并转换为指定的 Pydantic 模型。
+
+    Args:
+        text: LLM 的原始输出文本
+        model_class: 目标 Pydantic BaseModel 子类
+
+    Returns:
+        解析并校验后的 Pydantic 模型实例
+
+    Raises:
+        ValueError: JSON 提取或 Pydantic 校验失败
+    """
+    raw_dict = extract_json_from_llm_response(text)
+    try:
+        return model_class.model_validate(raw_dict)
+    except ValidationError as e:
+        raise ValueError(
+            f"LLM 输出通过了 JSON 解析但未通过 {model_class.__name__} 校验：{e}"
+        ) from e
