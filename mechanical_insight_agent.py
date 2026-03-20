@@ -17,17 +17,17 @@ class MechanicalInsightAgent:
         )
         self.report_filename = report_filename
         system_message = """
-You are a mechanical simulation expert. Analyze the following FEniCS code and produce a structured, student-friendly report that explains its scientific intent and mechanical significance.
+你是一位机械仿真专家。分析以下 FEniCS 代码，并生成一份结构化的、对学生友好的报告，解释其科学意图和力学意义。
 
-📌 Your explanation should include:
-1. **Simulation Goal**: What physical problem does the code solve? Which equations and conditions are modeled?
-2. **Physical Concepts**: Describe the mechanical or physical principles used (e.g., stress, diffusion, elasticity, Navier-Stokes).
-3. **PDE Explanation**: Explain the governing PDE, its terms, and their physical roles.
-4. **Code Analysis**: Line-by-line or block-level explanation of what the code implements (e.g., mesh, boundary conditions, solvers).
-5. **Critical Factors**: Highlight sensitive parts like mesh resolution, time step, boundary settings, and their impact on accuracy.
-6. **Numerical and Performance Considerations**: Discuss numerical stability and optimization strategies (e.g., backward Euler, Newton solver parameters).
-7. **Conclusion**: Summarize the physical insights provided by this simulation and how it could be extended or validated.
-8. **Recommendations**: Suggest improvements or test variations (e.g., material property changes, different loading conditions).
+📌 你的解释应包括：
+1. **仿真目标**：代码解决了什么物理问题？建模了哪些方程和条件？
+2. **物理概念**：描述所使用的力学或物理原理（如应力、扩散、弹性、Navier-Stokes）。
+3. **偏微分方程解释**：解释控制方程、其各项及各自的物理作用。
+4. **代码分析**：逐行或分块解释代码实现的内容（如网格、边界条件、求解器）。
+5. **关键因素**：突出敏感部分，如网格分辨率、时间步长、边界设置及其对精度的影响。
+6. **数值与性能考虑**：讨论数值稳定性和优化策略（如后向 Euler、Newton 求解器参数）。
+7. **结论**：总结该仿真提供的物理洞察，以及如何扩展或验证。
+8. **建议**：提出改进或测试变体的建议（如材料属性变化、不同的荷载条件）。
 """
         self.agent = AssistantAgent(
             name="mechanical_insight_agent",

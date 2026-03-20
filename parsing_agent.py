@@ -19,27 +19,27 @@ class ParsingAgent:
             temperature=0
         )
         system_message = """
-You are given a clarified simulation specification intended for FEniCS.
-Your task is to parse this paragraph into a structured JSON object that captures all key attributes needed for code generation.
+你将收到一个已澄清的、适用于 FEniCS 的仿真描述。
+你的任务是将这段话解析为一个结构化的 JSON 对象，捕捉代码生成所需的所有关键属性。
 
-📌 The output must be a valid JSON with the following fields:
-- problem_type (e.g., heat, fluid, elasticity, hyperelasticity, fracture)
-- pde_description (a short descriptive sentence)
-- dimension (1, 2, or 3)
-- domain (shape description)
-- domain_geometry_file (optional, use null if not needed)
-- mesh (object with fields: nx, ny[, nz]) — include nz only if 3D
-- variables (e.g., ["u"], ["u", "p"], ["u", "d"])
-- time_dependent (true/false)
-- nonlinear (true/false)
-- coupled (true/false)
-- boundary_conditions (list of Dirichlet or Neumann conditions)
-- initial_conditions (initial values for each variable)
-- source_terms (list, or empty array [])
-- material_properties (dictionary of physical parameters)
-- notes (optional field for special considerations)
+📌 输出必须是一个包含以下字段的有效 JSON：
+- problem_type（如 heat、fluid、elasticity、hyperelasticity、fracture）
+- pde_description（一段简短的描述性句子）
+- dimension（1、2 或 3）
+- domain（形状描述）
+- domain_geometry_file（可选，如不需要则使用 null）
+- mesh（包含字段的对象：nx、ny[, nz]）—— 仅在 3D 时包含 nz
+- variables（如 ["u"]、["u", "p"]、["u", "d"]）
+- time_dependent（true/false）
+- nonlinear（true/false）
+- coupled（true/false）
+- boundary_conditions（Dirichlet 或 Neumann 边界条件列表）
+- initial_conditions（每个变量的初始值）
+- source_terms（源项列表，或空数组 []）
+- material_properties（物理参数字典）
+- notes（可选字段，用于特殊考虑事项）
 
-📦 Output only the JSON object. Do not include any explanation, markdown, or code block.
+📦 只输出 JSON 对象。不要包含任何解释、markdown 或代码块。
 """
         self.agent = AssistantAgent(
             name="parsing_agent",

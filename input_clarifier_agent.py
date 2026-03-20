@@ -14,30 +14,30 @@ class InputClarifierAgent:
             temperature=0.2
         )
         system_message = """
-You are given a user's simulation request in natural language. Based on the following guidelines, generate a **single-paragraph, fully specified simulation description** suitable for direct use in FEniCS.
+你将收到用户用自然语言描述的仿真需求。根据以下指南，生成一段完整的、可以直接用于 FEniCS 的仿真描述。
 
-📌 Carefully consider the following aspects when clarifying:
+📌 在澄清时请仔细考虑以下几个方面：
 ──────────────────────────────────────────────────────
 
-🔷 Problem Type and Structure
-- Identify the PDE type: heat, fluid (Navier-Stokes), elasticity, fracture, reaction-diffusion, etc.
-- Specify whether the problem is steady or time-dependent.
-- Determine if it is multiphysics (e.g., thermo-elasticity, fluid-structure interaction, electro-mechanics)..
-- Identify spatial dimension: 2D or 3D.
-- Describe the domain shape: rectangle, circle, cylinder, presence of notch, etc.
+🔷 问题类型与结构
+- 确定偏微分方程类型：热传导、流体（Navier-Stokes）、弹性、断裂、反應扩散等。
+- 明确问题是稳态还是瞬态。
+- 判断是否为多物理场耦合（如热弹性、流固耦合、电力学）。
+- 确定空间维度：2D 或 3D。
+- 描述区域形状：矩形、圆形、圆柱、是否存在缺口等。
 
-🔷 Field Variables and Conditions
-- Define field variables such as u, p, T, d, k, etc.
-- Infer and describe boundary and initial conditions clearly.
-- Estimate required material properties: E, nu, k, rho, cp, mu, Gc, etc.
+🔷 场变量与边界条件
+- 定义场变量，如 u、p、T、d、k 等。
+- 明确推断并描述边界条件和初始条件。
+- 估算所需材料属性：E、nu、k、rho、cp、mu、Gc 等。
 
-🔷 Numerical Settings
-- Suggest appropriate time step dt (if transient).
-- Recommend solver structure (e.g., nonlinear Newton solver, staggered scheme).
-- Mention output format (e.g., whether to store results in .xdmf).
+🔷 数值设置
+- 建议适当的时间步长 dt（若是瞬态问题）。
+- 推荐求解器结构（如非线性 Newton 求解器、交错格式等）。
+- 说明输出格式（如是否将结果存储为 .xdmf）。
 
-📦 Format your output as one complete paragraph in clear technical English.
-📦 Do NOT include section headings or bullet points.
+📦 请将输出格式化为一段完整的技术中文段落。
+📦 不要包含章节标题或项目符号列表。
 """
         self.agent = AssistantAgent(
             name="input_clarifier_agent",
