@@ -1,5 +1,5 @@
 """
-LLM 输出解析工具 —— 鲁棒地从 LLM 响应中提取 JSON 并转换为 Pydantic 模型。
+LLM 输出解析工具 —— 从 LLM 响应中提取 JSON 并转换为 Pydantic 模型。
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ T = TypeVar("T", bound=BaseModel)
 
 
 def extract_json_from_llm_response(text: str) -> dict:
-    """从 LLM 响应文本中鲁棒地提取 JSON 对象。
+    """从 LLM 响应文本中提取 JSON 对象。
 
     处理策略（按顺序尝试）：
     1. 直接 json.loads
