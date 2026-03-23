@@ -1,6 +1,6 @@
 import os
 from autogen_agentchat.agents import AssistantAgent
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from config import get_llm_client, load_prompt
 from autogen_agentchat.messages import MultiModalMessage
 from autogen_core import Image
 from utils import setup_logger
@@ -12,46 +12,10 @@ class ResultEvaluationAgent:
     def __init__(self, api_key: str, model: str = "gpt-4o", base_url: str = None, log_dir: str = None):
         self.logger = setup_logger('result_evaluation_agent', 'result_evaluation_agent.log', log_dir=log_dir)
         # We need a model with vision capabilities. gpt-4o supports it.
-        self.model_client = OpenAIChatCompletionClient(
-            model=model, 
-            api_key=api_key, 
-            base_url=base_url,
-            model_info={'vision': True, 'function_calling': True, 'json_output': True, 'family': 'unknown'},
-            temperature=0
-        )
+        self.model_client = get_llm_client(api_key, model, base_url, temperature=0.0, vision=True)
         
         # 注意：评估 Agent 只负责诊断，不负责修复代码（责任链清晰化）
-        system_message = """
-你是一位高级机械与物理仿真专家。你的任务是基于文本指标和生成的可视化图表，评估 FEniCS 仿真结果的逻辑正确性和物理合理性。
-
-🚨 需要检查的关键物理启发式规则：
-1. **位移/变形**：
-   - 量级大小是否结构合理？（例如，1 米钢梁不应偏转 10 米，除非是特定的大变形非线性问题）。
-   - 固定边界条件是否在视觉上得到执行？（固定支撑处的位移必须恰好为 0，颜色条应显示这一点）。
-2. **应力分布（Von Mises 等）**：
-   - 应力是否集中在预期位置？（例如，尖角、悬臂根部、施加集中荷载的点）。
-   - 如果几何结构和荷载对称，是否存在预期的对称性？
-3. **温度/热流**：
-   - 热流是否从高温流向低温？
-   - 在没有内部热源的情况下，最大/最小温度是否超过施加的边界温度？（违反最大值原理）。
-4. **图表总体质量**：
-   - 是否有清晰的标题和颜色条？
-
-📦 输入：
-- 原始提示：用户实际想要的内容。
-- 执行的代码：成功运行的代码。
-- 文本输出：包含最大值/最小值的标准输出日志。
-- 结果图像：FEniCS 生成的图表。
-
-📦 输出格式（仅限 JSON！）：
-{
-  "is_correct": true 或 false，
-  "confidence": 0.0 到 1.0，
-  "feedback": "详细解释。如果为 false，请精确描述哪个物理启发式规则失败（例如："图表显示最大位移在固定端，违反了边界条件。"）"
-}
-
-⚠️ 重要提示：你只负责评估。不要试图修复代码。只需返回 is_correct、confidence 和 feedback。
-"""
+        system_message = load_prompt("result_evaluation.txt")
         self.agent = AssistantAgent(
             name="result_evaluation_agent",
             model_client=self.model_client,

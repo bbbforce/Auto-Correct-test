@@ -87,16 +87,13 @@ async def main():
     # Step 4: Execution Loop（自校正执行循环）
     # 责任链：ResultEvaluationAgent 只做诊断 → ErrorDiagnosisAgent 统一负责修复
     logger.info(f"--- Step 4: Execution Loop (Max Retries: {args.max_retries}) ---")
-    simulation_success = False
-    current_code = generated_code
-    best_code = None
-    best_confidence = -1.0
-    final_output = ""
-    repair_history: list[dict] = []  # 修复历史，避免重蹈覆辙
+    
+    from models import SimulationContext
+    context = SimulationContext(current_code=generated_code)
 
     for attempt in range(args.max_retries):
         logger.info(f"Execution Attempt {attempt + 1}/{args.max_retries}")
-        executor.save_code_to_file(current_code)
+        executor.save_code_to_file(context.current_code)
         
         exec_result = executor.execute_simulation()
 
@@ -109,17 +106,17 @@ async def main():
                 logger.info("Diagnosing error...")
                 diagnosis = await error_diagnosis_agent.diagnose_and_fix(
                     error_message=exec_result.output,
-                    code=current_code,
+                    code=context.current_code,
                     simulation_output=exec_result.output,
                     iteration=attempt,
-                    repair_history=repair_history,
+                    repair_history=context.repair_history,
                     log_dir=run_dir,
                 )
-                repair_history.append({"hint": diagnosis.hint, "confidence": diagnosis.confidence})
+                context.add_repair_record(diagnosis.hint, diagnosis.confidence)
 
                 if diagnosis.after_code:
                     logger.info("Applying fixed code from ErrorDiagnosisAgent.")
-                    current_code = diagnosis.after_code
+                    context.current_code = diagnosis.after_code
                 else:
                     logger.error("Error diagnosis failed to produce a valid fix.")
             else:
@@ -129,7 +126,7 @@ async def main():
             logger.info("Simulation executed successfully! Starting physical/logical evaluation...")
             eval_result = await result_evaluator.evaluate_results(
                 prompt=user_prompt,
-                code=current_code,
+                code=context.current_code,
                 simulation_output=exec_result.output,
                 image_paths=exec_result.files,
             )
@@ -137,50 +134,48 @@ async def main():
             logger.info(f"Evaluation feedback: {eval_result.feedback}")
 
             # 记录历史最优
-            if not best_code or (eval_result.is_correct and eval_result.confidence > best_confidence) \
-                    or (not eval_result.is_correct and best_code and eval_result.confidence > best_confidence):
-                best_code = current_code
-                best_confidence = eval_result.confidence
-                final_output = exec_result.output
+            if not context.best_code or (eval_result.is_correct and eval_result.confidence > context.best_confidence) \
+                    or (not eval_result.is_correct and context.best_code and eval_result.confidence > context.best_confidence):
+                context.update_best(context.current_code, eval_result.confidence, exec_result.output)
 
             if eval_result.is_correct:
                 logger.info("Simulation evaluated as logically AND physically correct!")
-                simulation_success = True
-                final_output = exec_result.output
+                context.simulation_success = True
+                context.final_output = exec_result.output
                 break
             else:
-                # 评估不通过 → 统一由 ErrorDiagnosisAgent 修复（责任链清晰化）
+                # 评估不通过 → 统一由 ErrorDiagnosisAgent 修复
                 logger.warning(f"Simulation result is physically incorrect. Attempt {attempt + 1}/{args.max_retries}.")
                 if attempt < args.max_retries - 1:
                     logger.info("Forwarding physics feedback to ErrorDiagnosisAgent to rewrite code.")
                     diagnosis = await error_diagnosis_agent.diagnose_and_fix(
                         error_message="Physical/Logical Error: " + eval_result.feedback,
-                        code=current_code,
+                        code=context.current_code,
                         simulation_output=exec_result.output,
                         iteration=attempt,
-                        repair_history=repair_history,
+                        repair_history=context.repair_history,
                         log_dir=run_dir,
                     )
-                    repair_history.append({"hint": diagnosis.hint, "confidence": diagnosis.confidence})
+                    context.add_repair_record(diagnosis.hint, diagnosis.confidence)
 
                     if diagnosis.after_code:
                         logger.info("Applying fixed code from ErrorDiagnosisAgent.")
-                        current_code = diagnosis.after_code
+                        context.current_code = diagnosis.after_code
                     else:
                         logger.error("Revising code based on physical feedback failed.")
                 else:
                     logger.error("Max retries reached without passing physical evaluation.")
 
     # Fallback Mechanism (防错后备方案)
-    if not simulation_success and best_code:
+    if not context.simulation_success and context.best_code:
         logger.warning("Falling back to the best historical code version.")
-        executor.save_code_to_file(best_code)
-        current_code = best_code
+        executor.save_code_to_file(context.best_code)
+        context.current_code = context.best_code
 
     # Step 5: Generate Report 生成报告
-    if simulation_success or best_code:
+    if context.simulation_success or context.best_code:
         logger.info("--- Step 5: Mechanical Insight Report ---")
-        report = await insight_agent.generate_report(current_code)
+        report = await insight_agent.generate_report(context.current_code)
 
         # 保存报告到运行目录
         report_path = os.path.join(run_dir, "simulation_report.txt")
@@ -191,7 +186,7 @@ async def main():
         print("\n--- Insight Report ---")
         print(report)
         print("\n--- Final Output Metrics ---")
-        print(final_output)
+        print(context.final_output)
     else:
         logger.error("Simulation workflow failed completely. No insight report generated.")
 

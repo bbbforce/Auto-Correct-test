@@ -30,9 +30,11 @@ def setup_logger(name, log_file, level=logging.INFO, log_dir=None):
     logger.setLevel(level)
     logger.propagate = False
 
-    if not logger.handlers:
-        logger.addHandler(handler)
-        logger.addHandler(console_handler)
+    # Clear existing handlers to prevent log duplication across multiple runs
+    logger.handlers.clear()
+    
+    logger.addHandler(handler)
+    logger.addHandler(console_handler)
 
     return logger
 

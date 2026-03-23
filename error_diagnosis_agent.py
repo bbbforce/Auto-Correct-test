@@ -2,7 +2,7 @@ import json
 import os
 import datetime
 from autogen_agentchat.agents import AssistantAgent
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from config import get_llm_client, load_prompt
 from utils import setup_logger
 from models import DiagnosisResult
 from llm_utils import parse_llm_response
@@ -32,29 +32,8 @@ class ErrorDiagnosisAgent:
     def __init__(self, api_key: str, model: str = "gpt-4o", base_url: str = None, log_dir: str = None):
         self.logger = setup_logger('error_diagnosis_agent', 'error_diagnosis_agent.log', log_dir=log_dir)
         self.log_dir = log_dir
-        self.model_client = OpenAIChatCompletionClient(
-            model=model, 
-            api_key=api_key, 
-            base_url=base_url,
-            model_info={'vision': False, 'function_calling': True, 'json_output': True, 'family': 'unknown'},
-            temperature=0
-        )
-        system_message = """
-你是一个专门诊断和解决 FEniCS 仿真 Python 代码错误的诊断代理。
-
-你的任务是：
-1. 分析仿真输出和错误日志。
-2. 准确识别原始代码失败的根本原因。
-3. 返回修正后的完整代码（纯 Python，无需 markdown）。
-
-📦 输出格式（必须严格遵循此 JSON 模式）：
-{
-  "fix_type": "parsing" 或 "code",
-  "hint": "错误说明及修复方法",
-  "after_code": "修改后的完整 Python 代码",
-  "confidence": 0.0 到 1.0 之间的浮点数
-}
-"""
+        self.model_client = get_llm_client(api_key, model, base_url, temperature=0.0)
+        system_message = load_prompt("error_diagnosis.txt")
         self.agent = AssistantAgent(
             name="error_diagnosis_agent",
             model_client=self.model_client,

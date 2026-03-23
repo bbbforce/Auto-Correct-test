@@ -38,3 +38,21 @@ class ParsedSimulation(BaseModel):
     """ParsingAgent 的返回值契约。"""
     parsed: dict = Field(default_factory=dict)
     full_text: str = ""
+
+
+class SimulationContext(BaseModel):
+    """协调主循环中各轮次传递和追踪的状态。"""
+    current_code: str = ""
+    best_code: Optional[str] = None
+    best_confidence: float = -1.0
+    final_output: str = ""
+    repair_history: list[dict] = Field(default_factory=list)
+    simulation_success: bool = False
+    
+    def add_repair_record(self, hint: str, confidence: float):
+        self.repair_history.append({"hint": hint, "confidence": confidence})
+
+    def update_best(self, code: str, confidence: float, output: str):
+        self.best_code = code
+        self.best_confidence = confidence
+        self.final_output = output

@@ -37,28 +37,16 @@ class SimulationExecutorAgent:
                 ["conda", "run", "-n", "fenics-env", "python", self.simulation_filename],
                 capture_output=True,
                 text=True,
-                check=True,
                 timeout=EXECUTION_TIMEOUT,
             )
             stdout = res.stdout.strip()
             stderr = res.stderr.strip()
 
-            error_pattern = re.compile(
-                r"(Traceback|NameError|SyntaxError|Exception|RuntimeError|"
-                r"ImportError|ValueError|TypeError|AttributeError|IndexError|KeyError|"
-                r"IndentationError|ZeroDivisionError|MemoryError|"
-                r"FileNotFoundError|ModuleNotFoundError|FloatingPointError|OSError|"
-                r"DijitsoError|Unable to compile|Segmentation fault|Killed|"
-                r"ArityMismatch|UFLException|form compilation failed|"
-                r"compute_form_data|ffc.jit|ffcjitsigning|map_expr_dag|"
-                r"check_integrand_arity|check_form_arity|analyze_ufl_objects|compile_form)"
-            )
-
             new_file_paths = self._collect_new_files(before_files)
 
-            if error_pattern.search(stdout) or error_pattern.search(stderr):
+            if res.returncode != 0:
                 combined_error = "\n".join(filter(None, [stdout, stderr]))
-                self.logger.error("Error detected in simulation output.")
+                self.logger.error(f"Simulation execution failed with return code {res.returncode}.")
                 self.logger.error(f"Simulation error output: {combined_error}")
                 return ExecutionResult(status="error", output=combined_error, files=new_file_paths)
 
@@ -75,11 +63,10 @@ class SimulationExecutorAgent:
                 files=new_file_paths,
             )
 
-        except subprocess.CalledProcessError as e:
-            self.logger.error("Simulation execution failed with exception.")
-            self.logger.error(f"Error output: {e.stderr}")
+        except Exception as e:
+            self.logger.error(f"Simulation execution failed with exception: {e}")
             new_file_paths = self._collect_new_files(before_files)
-            return ExecutionResult(status="error", output=e.stderr or "", files=new_file_paths)
+            return ExecutionResult(status="error", output=str(e), files=new_file_paths)
 
     def _collect_new_files(self, before_files: set) -> list[str]:
         """收集执行后新生成的图片文件。"""
