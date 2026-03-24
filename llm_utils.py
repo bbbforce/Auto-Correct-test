@@ -15,6 +15,76 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 
+async def process_stream_and_filter_think(stream_gen, print_output=True) -> str:
+    """
+    处理 AssistantAgent 的 run_stream 生成器，动态过滤掉 <think>...</think> 标签内容，
+    不在终端打印也不包含在最终返回的字符串中。
+    """
+    from autogen_agentchat.messages import ModelClientStreamingChunkEvent, ThoughtEvent
+    import sys
+
+    in_think = False
+    buffer = ""
+    final_content = []
+
+    try:
+        async for msg in stream_gen:
+            if isinstance(msg, ThoughtEvent):
+                continue
+                
+            if hasattr(msg, "content") and isinstance(msg.content, str):
+                if isinstance(msg, ModelClientStreamingChunkEvent):
+                    chunk = msg.content
+                    buffer += chunk
+
+                    while True:
+                        if not in_think:
+                            think_start = buffer.find("<think>")
+                            if think_start != -1:
+                                before_think = buffer[:think_start]
+                                if before_think:
+                                    if print_output:
+                                        sys.stdout.write(before_think)
+                                        sys.stdout.flush()
+                                    final_content.append(before_think)
+
+                                buffer = buffer[think_start + len("<think>"):]
+                                in_think = True
+                            else:
+                                if len(buffer) < 7:
+                                    break
+                                
+                                safe_part = buffer[:-6]
+                                if safe_part:
+                                    if print_output:
+                                        sys.stdout.write(safe_part)
+                                        sys.stdout.flush()
+                                    final_content.append(safe_part)
+                                buffer = buffer[-6:]
+                                break
+                        else:
+                            think_end = buffer.find("</think>")
+                            if think_end != -1:
+                                buffer = buffer[think_end + len("</think>"):]
+                                in_think = False
+                            else:
+                                if len(buffer) < 8:
+                                    break
+                                buffer = buffer[-7:]
+                                break
+
+        if not in_think and buffer:
+            if print_output:
+                sys.stdout.write(buffer)
+                sys.stdout.flush()
+            final_content.append(buffer)
+
+    except Exception as e:
+        logger.error(f"Error while processing stream: {e}")
+
+    return "".join(final_content).strip()
+
+
 def extract_json_from_llm_response(text: str) -> dict:
     """从 LLM 响应文本中提取 JSON 对象。
 

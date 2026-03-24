@@ -18,11 +18,11 @@ def setup_logger(name, log_file, level=logging.INFO, log_dir=None):
         os.makedirs(log_dir, exist_ok=True)
         log_file = os.path.join(log_dir, log_file)
 
-    # File handler
+    # File handler (文件句柄)
     handler = logging.FileHandler(log_file, encoding='utf-8')
     handler.setFormatter(formatter)
 
-    # Console handler
+    # Console handler (控制台句柄)
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
 
@@ -30,7 +30,8 @@ def setup_logger(name, log_file, level=logging.INFO, log_dir=None):
     logger.setLevel(level)
     logger.propagate = False
 
-    # Clear existing handlers to prevent log duplication across multiple runs
+    # Clear existing handlers to prevent log duplication across multiple runs 
+    # (清除现有句柄以防止多次运行中日志重复)
     logger.handlers.clear()
     
     logger.addHandler(handler)

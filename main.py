@@ -26,9 +26,11 @@ async def main():
     result_dir = os.path.join(run_dir, "result")
 
     logger = setup_logger('main_execution', 'main_execution.log', log_dir=run_dir)
+    logger.info("="*50)
     logger.info(f"Run directory: {run_dir}")
+    logger.info("="*50 + "\n")
 
-    # Load environment variables
+    # Load environment variables (加载环境变量)
     load_dotenv()
     api_key = os.environ.get("OPENAI_API_KEY")
     model_name = os.environ.get("LLM_MODEL", "gpt-4o")
@@ -38,7 +40,9 @@ async def main():
         logger.error("OPENAI_API_KEY environment variable not found. Please set it in a .env file or environment.")
         return
 
+    logger.info("="*50)
     logger.info(f"Initializing MCP-SIM Agents with model: {model_name}...")
+    logger.info("="*50 + "\n")
     input_clarifier = InputClarifierAgent(api_key=api_key, model=model_name, base_url=base_url, log_dir=run_dir)
     parsing_agent = ParsingAgent(api_key=api_key, model=model_name, base_url=base_url, log_dir=run_dir)
     code_builder = CodeBuilderAgent(api_key=api_key, model=model_name, base_url=base_url, log_dir=run_dir)
@@ -61,24 +65,36 @@ async def main():
         logger.error("Simulation prompt cannot be empty.")
         return
 
+    logger.info("="*50)
     logger.info(f"User Request: {user_prompt}")
+    logger.info("="*50 + "\n")
 
-    # Step 1: Clarify 输入澄清 
+    # Step 1: Clarify 输入澄清
+    print("\n" + "="*80)
+    print(f"{'--- Step 1: Clarification ---':^80}") 
+    print("="*80 + "\n")
+
+    logger.info("="*50)
     logger.info("--- Step 1: Clarification ---")
+    logger.info("="*50 + "\n")
     clarified_input = await input_clarifier.clarify(user_prompt)
     if not clarified_input:
         logger.error("Clarification failed.")
         return
 
     # Step 2: Parse 结构化解析为JSON
+    logger.info("="*50)
     logger.info("--- Step 2: Parsing ---")
+    logger.info("="*50 + "\n")
     parsed_data = await parsing_agent.parse(clarified_input)
     if not parsed_data:
         logger.error("Parsing failed.")
         return
 
     # Step 3: Code Building 代码构建
+    logger.info("="*50)
     logger.info("--- Step 3: Code Building ---")
+    logger.info("="*50 + "\n")
     generated_code = await code_builder.build_code(parsed_data)
     if not generated_code:
         logger.error("Code generation failed.")
@@ -86,13 +102,17 @@ async def main():
 
     # Step 4: Execution Loop（自校正执行循环）
     # 责任链：ResultEvaluationAgent 只做诊断 → ErrorDiagnosisAgent 统一负责修复
+    logger.info("="*50)
     logger.info(f"--- Step 4: Execution Loop (Max Retries: {args.max_retries}) ---")
+    logger.info("="*50 + "\n")
     
     from models import SimulationContext
     context = SimulationContext(current_code=generated_code)
 
     for attempt in range(args.max_retries):
+        logger.info("="*50)
         logger.info(f"Execution Attempt {attempt + 1}/{args.max_retries}")
+        logger.info("="*50 + "\n")
         executor.save_code_to_file(context.current_code)
         
         exec_result = executor.execute_simulation()
@@ -103,7 +123,9 @@ async def main():
             logger.warning(f"{error_label} detected during attempt {attempt + 1}.")
 
             if attempt < args.max_retries - 1:
+                logger.info("="*50)
                 logger.info("Diagnosing error...")
+                logger.info("="*50 + "\n")
                 diagnosis = await error_diagnosis_agent.diagnose_and_fix(
                     error_message=exec_result.output,
                     code=context.current_code,
@@ -115,7 +137,9 @@ async def main():
                 context.add_repair_record(diagnosis.hint, diagnosis.confidence)
 
                 if diagnosis.after_code:
+                    logger.info("="*50)
                     logger.info("Applying fixed code from ErrorDiagnosisAgent.")
+                    logger.info("="*50 + "\n")
                     context.current_code = diagnosis.after_code
                 else:
                     logger.error("Error diagnosis failed to produce a valid fix.")
@@ -123,7 +147,9 @@ async def main():
                 logger.error(f"Max retries reached on {error_label.lower()}s.")
         else:
             # 执行成功 → 交给 ResultEvaluationAgent 做物理/逻辑评估
+            logger.info("="*50)
             logger.info("Simulation executed successfully! Starting physical/logical evaluation...")
+            logger.info("="*50 + "\n")
             eval_result = await result_evaluator.evaluate_results(
                 prompt=user_prompt,
                 code=context.current_code,
@@ -131,7 +157,9 @@ async def main():
                 image_paths=exec_result.files,
             )
 
+            logger.info("="*50)
             logger.info(f"Evaluation feedback: {eval_result.feedback}")
+            logger.info("="*50 + "\n")
 
             # 记录历史最优
             if not context.best_code or (eval_result.is_correct and eval_result.confidence > context.best_confidence) \
@@ -139,7 +167,9 @@ async def main():
                 context.update_best(context.current_code, eval_result.confidence, exec_result.output)
 
             if eval_result.is_correct:
+                logger.info("="*50)
                 logger.info("Simulation evaluated as logically AND physically correct!")
+                logger.info("="*50 + "\n")
                 context.simulation_success = True
                 context.final_output = exec_result.output
                 break
@@ -147,7 +177,9 @@ async def main():
                 # 评估不通过 → 统一由 ErrorDiagnosisAgent 修复
                 logger.warning(f"Simulation result is physically incorrect. Attempt {attempt + 1}/{args.max_retries}.")
                 if attempt < args.max_retries - 1:
+                    logger.info("="*50)
                     logger.info("Forwarding physics feedback to ErrorDiagnosisAgent to rewrite code.")
+                    logger.info("="*50 + "\n")
                     diagnosis = await error_diagnosis_agent.diagnose_and_fix(
                         error_message="Physical/Logical Error: " + eval_result.feedback,
                         code=context.current_code,
@@ -159,7 +191,9 @@ async def main():
                     context.add_repair_record(diagnosis.hint, diagnosis.confidence)
 
                     if diagnosis.after_code:
+                        logger.info("="*50)
                         logger.info("Applying fixed code from ErrorDiagnosisAgent.")
+                        logger.info("="*50 + "\n")
                         context.current_code = diagnosis.after_code
                     else:
                         logger.error("Revising code based on physical feedback failed.")
@@ -174,7 +208,9 @@ async def main():
 
     # Step 5: Generate Report 生成报告
     if context.simulation_success or context.best_code:
-        logger.info("--- Step 5: Mechanical Insight Report ---")
+        logger.info("="*50)
+        logger.info(" --- STEP 5: MECHANICAL INSIGHT REPORT --- ")
+        logger.info("="*50 + "\n")
         report = await insight_agent.generate_report(context.current_code)
 
         # 保存报告到运行目录
@@ -182,7 +218,9 @@ async def main():
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(report)
 
+        logger.info("="*50)
         logger.info("Simulation workflow completed.")
+        logger.info("="*50 + "\n")
         print("\n--- Insight Report ---")
         print(report)
         print("\n--- Final Output Metrics ---")

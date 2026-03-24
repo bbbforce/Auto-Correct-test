@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 class DiagnosisResult(BaseModel):
     """ErrorDiagnosisAgent 的返回值契约。"""
     fix_type: Literal["parsing", "code"] = "code"
-    hint: str = "Automatically diagnosed."
+    hint: str = ""
     before_code: str = ""
     after_code: str = ""
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)

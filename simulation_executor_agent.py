@@ -15,7 +15,7 @@ class SimulationExecutorAgent:
         self.result_dir = result_dir
 
     def save_code_to_file(self, code: str):
-        """Save the generated Python simulation code to a file."""
+        """Save the generated Python simulation code to a file.(将生成的 Python 仿真代码保存到文件中。)"""
         with open(self.simulation_filename, "w", encoding="utf-8") as f:
             f.write(code)
         self.logger.info(f"Simulation code saved to {self.simulation_filename}")

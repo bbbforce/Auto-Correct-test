@@ -2,10 +2,11 @@ import json
 import os
 import datetime
 from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.messages import ModelClientStreamingChunkEvent, ThoughtEvent
 from config import get_llm_client, load_prompt
 from utils import setup_logger
 from models import DiagnosisResult
-from llm_utils import parse_llm_response
+from llm_utils import parse_llm_response, process_stream_and_filter_think
 
 ERROR_LOG_FILE = "error_logs.txt"
 
@@ -33,11 +34,14 @@ class ErrorDiagnosisAgent:
         self.logger = setup_logger('error_diagnosis_agent', 'error_diagnosis_agent.log', log_dir=log_dir)
         self.log_dir = log_dir
         self.model_client = get_llm_client(api_key, model, base_url, temperature=0.0)
+        
+    def _get_agent(self) -> AssistantAgent:
         system_message = load_prompt("error_diagnosis.txt")
-        self.agent = AssistantAgent(
+        return AssistantAgent(
             name="error_diagnosis_agent",
             model_client=self.model_client,
-            system_message=system_message
+            system_message=system_message,
+            model_client_stream=True
         )
 
     async def diagnose_and_fix(
@@ -67,13 +71,13 @@ class ErrorDiagnosisAgent:
         save_error_log(error_message, code, simulation_output, log_dir=effective_log_dir, logger=self.logger)
 
         if not simulation_output.strip():
-            simulation_output = "[No output detected. The code may have failed to execute properly.]"
+            simulation_output = "[No output detected. The code may have failed to execute properly.]" # [未检测到输出。代码可能未能正确执行。]
             self.logger.warning("Simulation output is empty; inserted placeholder message.")
 
         # 构建历史修复记录部分
         history_section = ""
         if repair_history:
-            history_section = "\n[Previous Repair History — DO NOT repeat the same fixes]\n"
+            history_section = "\n[Previous Repair History — DO NOT repeat the same fixes]\n" # [\n[先前修复历史 —— 不要重复相同的修复]\n]
             for i, record in enumerate(repair_history):
                 history_section += (
                     f"  Attempt {i+1}: {record.get('hint', 'N/A')} "
@@ -100,8 +104,11 @@ class ErrorDiagnosisAgent:
             f.write(prompt + "\n")
 
         try:
-            result = await self.agent.run(task=prompt)
-            content = result.messages[-1].content.strip()
+            print(f"\n--- ErrorDiagnosisAgent Streaming Output ---")
+            agent = self._get_agent()
+            content = await process_stream_and_filter_think(agent.run_stream(task=prompt), print_output=True)
+            print("\n--------------------------------------------")
+            
 
             diagnosis = parse_llm_response(content, DiagnosisResult)
             diagnosis.before_code = code
