@@ -38,6 +38,7 @@ class SimulationExecutorAgent:
                 capture_output=True,
                 text=True,
                 timeout=EXECUTION_TIMEOUT,
+                env={**os.environ, "RESULT_DIR": self.result_dir},
             )
             stdout = res.stdout.strip()
             stderr = res.stderr.strip()

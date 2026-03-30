@@ -11,14 +11,16 @@ from simulation_executor_agent import SimulationExecutorAgent
 from error_diagnosis_agent import ErrorDiagnosisAgent
 from mechanical_insight_agent import MechanicalInsightAgent
 from result_evaluation_agent import ResultEvaluationAgent
+from file_parser import parse_files
 from utils import setup_logger, create_run_dir
 
 
 async def main():
     parser = argparse.ArgumentParser(description="MCP-SIM Asynchronous Orchestrator")
-    parser.add_argument("--prompt", type=str, help="Natural language description of the simulation.", default=None)
-    parser.add_argument("--prompt_file", type=str, help="Path to a text file containing the simulation prompt.", default="prompt.txt")
-    parser.add_argument("--max_retries", type=int, default=3, help="Maximum number of retries for code execution.")
+    parser.add_argument("--prompt", type=str, help="输入对模拟过程的自然语言描述", default=None)
+    parser.add_argument("--prompt_file", type=str, help="输入包含模拟提示词的文本文件路径", default="prompt.txt")
+    parser.add_argument("--files", nargs="+", type=str, help="上传文件路径（支持图片、PDF、Word、Excel、PPT等）", default=[])
+    parser.add_argument("--max_retries", type=int, default=3, help="设置代码执行的最大重试次数")
     args = parser.parse_args()
 
     # 创建本次运行的独立输出目录
@@ -32,44 +34,88 @@ async def main():
 
     # Load environment variables (加载环境变量)
     load_dotenv()
-    api_key = os.environ.get("OPENAI_API_KEY")
-    model_name = os.environ.get("LLM_MODEL", "gpt-4o")
-    base_url = os.environ.get("LLM_BASE_URL", None)
-    
-    if not api_key:
-        logger.error("OPENAI_API_KEY environment variable not found. Please set it in a .env file or environment.")
+    default_api_key  = os.environ.get("OPENAI_API_KEY")
+    default_base_url = os.environ.get("LLM_BASE_URL", None)
+    default_model    = os.environ.get("LLM_MODEL", "gpt-4o")
+
+    if not default_api_key:
+        logger.error("未找到 OPENAI_API_KEY 环境变量。请在.env 文件或环境中进行设置")
         return
 
-    logger.info("="*50)
-    logger.info(f"Initializing MCP-SIM Agents with model: {model_name}...")
-    logger.info("="*50 + "\n")
-    input_clarifier = InputClarifierAgent(api_key=api_key, model=model_name, base_url=base_url, log_dir=run_dir)
-    parsing_agent = ParsingAgent(api_key=api_key, model=model_name, base_url=base_url, log_dir=run_dir)
-    code_builder = CodeBuilderAgent(api_key=api_key, model=model_name, base_url=base_url, log_dir=run_dir)
-    executor = SimulationExecutorAgent(result_dir=result_dir, log_dir=run_dir)
-    error_diagnosis_agent = ErrorDiagnosisAgent(api_key=api_key, model=model_name, base_url=base_url, log_dir=run_dir)
-    insight_agent = MechanicalInsightAgent(api_key=api_key, model=model_name, base_url=base_url, log_dir=run_dir)
-    result_evaluator = ResultEvaluationAgent(api_key=api_key, model=model_name, base_url=base_url, log_dir=run_dir)
+    def agent_cfg(prefix: str):
+        """读取 Agent 专属配置，未设置则回退到全局默认。"""
+        model    = os.environ.get(f"{prefix}_MODEL")    or default_model
+        base_url = os.environ.get(f"{prefix}_BASE_URL") or default_base_url
+        api_key  = os.environ.get(f"{prefix}_API_KEY")  or default_api_key
+        return model, base_url, api_key
 
+    cfg_input_clarifier    = agent_cfg("INPUT_CLARIFIER")
+    cfg_parsing            = agent_cfg("PARSING")
+    cfg_code_builder       = agent_cfg("CODE_BUILDER")
+    cfg_error_diagnosis    = agent_cfg("ERROR_DIAGNOSIS")
+    cfg_mechanical_insight = agent_cfg("MECHANICAL_INSIGHT")
+    cfg_result_evaluation  = agent_cfg("RESULT_EVALUATION")
+
+    logger.info("="*50)
+    logger.info(f"全局默认: model={default_model}  base_url={default_base_url}")
+    logger.info(f"  InputClarifierAgent    -> model={cfg_input_clarifier[0]}  base_url={cfg_input_clarifier[1]}")
+    logger.info(f"  ParsingAgent           -> model={cfg_parsing[0]}  base_url={cfg_parsing[1]}")
+    logger.info(f"  CodeBuilderAgent       -> model={cfg_code_builder[0]}  base_url={cfg_code_builder[1]}")
+    logger.info(f"  ErrorDiagnosisAgent    -> model={cfg_error_diagnosis[0]}  base_url={cfg_error_diagnosis[1]}")
+    logger.info(f"  MechanicalInsightAgent -> model={cfg_mechanical_insight[0]}  base_url={cfg_mechanical_insight[1]}")
+    logger.info(f"  ResultEvaluationAgent  -> model={cfg_result_evaluation[0]}  base_url={cfg_result_evaluation[1]}")
+    logger.info("="*50 + "\n")
+
+    input_clarifier = InputClarifierAgent(api_key=cfg_input_clarifier[2], model=cfg_input_clarifier[0], base_url=cfg_input_clarifier[1], log_dir=run_dir)
+    parsing_agent = ParsingAgent(api_key=cfg_parsing[2], model=cfg_parsing[0], base_url=cfg_parsing[1], log_dir=run_dir)
+    code_builder = CodeBuilderAgent(api_key=cfg_code_builder[2], model=cfg_code_builder[0], base_url=cfg_code_builder[1], log_dir=run_dir)
+    executor = SimulationExecutorAgent(result_dir=result_dir, log_dir=run_dir)
+    error_diagnosis_agent = ErrorDiagnosisAgent(api_key=cfg_error_diagnosis[2], model=cfg_error_diagnosis[0], base_url=cfg_error_diagnosis[1], log_dir=run_dir)
+    insight_agent = MechanicalInsightAgent(api_key=cfg_mechanical_insight[2], model=cfg_mechanical_insight[0], base_url=cfg_mechanical_insight[1], log_dir=run_dir)
+    result_evaluator = ResultEvaluationAgent(api_key=cfg_result_evaluation[2], model=cfg_result_evaluation[0], base_url=cfg_result_evaluation[1], log_dir=run_dir)
+
+    # ── 解析附件文件 ──────────────────────────────────────────────────────────
+    attached_images = []
+    file_text = ""
+    if args.files:
+        logger.info(f"解析附件文件: {args.files}")
+        parse_result = parse_files(args.files)
+        file_text = parse_result.text
+        attached_images = parse_result.images
+        logger.info(f"从文件中提取文本: {len(file_text)} 字符, 图片: {len(attached_images)} 张")
+
+    # ── 获取用户 prompt ───────────────────────────────────────────────────────
     if args.prompt:
         user_prompt = args.prompt
-    else:
+    elif not args.files:
+        # 没有 --files 时才尝试从文件读取 prompt
         try:
             with open(args.prompt_file, "r", encoding="utf-8") as f:
                 user_prompt = f.read().strip()
         except FileNotFoundError:
             logger.error(f"Prompt file not found: {args.prompt_file}. Please create it or use --prompt.")
             return
-            
-    if not user_prompt:
-        logger.error("Simulation prompt cannot be empty.")
+    else:
+        user_prompt = ""
+
+    # 合并文件提取的文本与用户 prompt
+    if file_text:
+        if user_prompt:
+            user_prompt = f"[从附件文件中提取的内容]\n{file_text}\n\n[用户补充说明]\n{user_prompt}"
+        else:
+            user_prompt = file_text
+
+    if not user_prompt and not attached_images:
+        logger.error("输入不能为空：请提供 --prompt、--prompt_file 或 --files 中的至少一项。")
         return
 
     logger.info("="*50)
-    logger.info(f"User Request: {user_prompt}")
+    logger.info(f"User Request: {user_prompt[:500]}{'...' if len(user_prompt) > 500 else ''}")
+    if attached_images:
+        logger.info(f"Attached images: {attached_images}")
     logger.info("="*50 + "\n")
 
-    # Step 1: Clarify 输入澄清
+    # Step 1: Clarify 输入清晰化
     print("\n" + "="*80)
     print(f"{'--- Step 1: Clarification ---':^80}") 
     print("="*80 + "\n")
@@ -77,12 +123,16 @@ async def main():
     logger.info("="*50)
     logger.info("--- Step 1: Clarification ---")
     logger.info("="*50 + "\n")
-    clarified_input = await input_clarifier.clarify(user_prompt)
+    clarified_input = await input_clarifier.clarify(user_prompt, images=attached_images if attached_images else None)
     if not clarified_input:
         logger.error("Clarification failed.")
         return
 
     # Step 2: Parse 结构化解析为JSON
+    print("\n" + "="*80)
+    print(f"{'--- Step 2: Parsing ---':^80}") 
+    print("="*80 + "\n")
+
     logger.info("="*50)
     logger.info("--- Step 2: Parsing ---")
     logger.info("="*50 + "\n")
@@ -92,6 +142,10 @@ async def main():
         return
 
     # Step 3: Code Building 代码构建
+    print("\n" + "="*80)
+    print(f"{'--- Step 3: Code Building ---':^80}") 
+    print("="*80 + "\n")
+
     logger.info("="*50)
     logger.info("--- Step 3: Code Building ---")
     logger.info("="*50 + "\n")
@@ -102,6 +156,10 @@ async def main():
 
     # Step 4: Execution Loop（自校正执行循环）
     # 责任链：ResultEvaluationAgent 只做诊断 → ErrorDiagnosisAgent 统一负责修复
+    print("\n" + "="*80)
+    print(f"{'--- Step 4: Execution Loop (Max Retries: {args.max_retries}) ---':^80}") 
+    print("="*80 + "\n")
+
     logger.info("="*50)
     logger.info(f"--- Step 4: Execution Loop (Max Retries: {args.max_retries}) ---")
     logger.info("="*50 + "\n")
@@ -208,8 +266,12 @@ async def main():
 
     # Step 5: Generate Report 生成报告
     if context.simulation_success or context.best_code:
+        print("\n" + "="*80)
+        print(f"{'--- Step 5: Mechanical Insight Report ---':^80}") 
+        print("="*80 + "\n")
+
         logger.info("="*50)
-        logger.info(" --- STEP 5: MECHANICAL INSIGHT REPORT --- ")
+        logger.info(" --- Step 5: Mechanical Insight Report --- ")
         logger.info("="*50 + "\n")
         report = await insight_agent.generate_report(context.current_code)
 

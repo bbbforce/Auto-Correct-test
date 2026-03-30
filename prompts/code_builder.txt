@@ -30,7 +30,7 @@
      - 必须使用 `matplotlib.pyplot` 或 FEniCS 的 `plot(u)` 来绘制最终结果（如位移、温度、von Mises 应力）。
      - 图表必须有标题（`plt.title('...')`）。
      - 图表必须有颜色条（`plt.colorbar(p)` 或类似方法，映射物理量）。
-     - 将图表保存为 PNG 文件到 `result/` 目录下，使用描述性名称（如 `result/temperature_distribution.png`）。如果 `result/` 目录不存在，使用 `os.makedirs` 创建它。
+     - 将图表保存为 PNG 文件到 `result_dir` 目录下，使用描述性名称（如 `os.path.join(result_dir, "temperature_distribution.png")`）。
   8. 输出物理指标（关键）：
      - 在脚本末尾，必须提取并 `print()` 关键物理量最大值/最小值到标准输出。例如：最大位移、最大 von Mises 应力、最大/最小温度。
      - 例如：`print(f"MAX_TEMPERATURE: {u.vector().max()}")`
@@ -43,7 +43,9 @@
 - 对于非线性问题（如超弹性、相场）：
   - 必须定义 `F`（使用 `Function`，不是 `TrialFunction` 的线性形式）和 `J = derivative(F, u, du)`。
   - 使用 `solve(F == 0, u, bcs, J=J, solver_parameters={"newton_solver": {"linear_solver": "mumps"}})`。
-- 文件保存关键规则：
-  - 如果保存为 XDMF，必须使用 `XDMFFile("result/name.xdmf")`。不要使用 `File("...xdmf")`。
-  - 如果使用 `File()`，只能用于 `.pvd` 文件（例如 `File("result/name.pvd")`）。
+- 文件保存关键规则（必须使用 result_dir 变量，不得硬编码路径）：
+  - 脚本顶部必须定义：`result_dir = os.environ.get("RESULT_DIR", "result")`，然后 `os.makedirs(result_dir, exist_ok=True)`。
+  - 所有文件/图片保存路径必须使用 `os.path.join(result_dir, "filename.ext")`，不得出现任何硬编码的目录字符串（如 `"result/"` 或 `"./output/"`）。
+  - 如果保存为 XDMF，必须使用 `XDMFFile(os.path.join(result_dir, "name.xdmf"))`。不要使用 `File("...xdmf")`。
+  - 如果使用 `File()`，只能用于 `.pvd` 文件，例如 `File(os.path.join(result_dir, "name.pvd"))`。
 - 对于分母使用 `+ eps` 以提高数值稳定性（例如 `epsilon + eps`）。

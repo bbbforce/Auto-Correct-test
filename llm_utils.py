@@ -102,6 +102,19 @@ def extract_json_from_llm_response(text: str) -> dict:
 
     cleaned = text.strip()
 
+    # 策略 0：响应开头被流式截断（缺少 '{'），尝试补全后解析
+    if not cleaned.startswith("{") and not cleaned.startswith("[") and not cleaned.startswith("```"):
+        candidate = "{" + cleaned
+        # 补全缺失的闭合括号
+        open_count = candidate.count("{")
+        close_count = candidate.count("}")
+        if open_count > close_count:
+            candidate += "}" * (open_count - close_count)
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+
     # 策略 1：直接解析
     try:
         return json.loads(cleaned)
