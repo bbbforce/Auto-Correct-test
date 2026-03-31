@@ -6,11 +6,15 @@ from __future__ import annotations
 import json
 import re
 import logging
+import contextvars
 from typing import Type, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
+
+# 流式输出回调上下文变量（async-safe，不需要修改任何 Agent 代码）
+stream_callback_var: contextvars.ContextVar = contextvars.ContextVar('stream_callback', default=None)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -47,6 +51,9 @@ async def process_stream_and_filter_think(stream_gen, print_output=True) -> str:
                                         sys.stdout.write(before_think)
                                         sys.stdout.flush()
                                     final_content.append(before_think)
+                                    _cb = stream_callback_var.get(None)
+                                    if _cb:
+                                        await _cb(before_think)
 
                                 buffer = buffer[think_start + len("<think>"):]
                                 in_think = True
@@ -60,6 +67,9 @@ async def process_stream_and_filter_think(stream_gen, print_output=True) -> str:
                                         sys.stdout.write(safe_part)
                                         sys.stdout.flush()
                                     final_content.append(safe_part)
+                                    _cb = stream_callback_var.get(None)
+                                    if _cb:
+                                        await _cb(safe_part)
                                 buffer = buffer[-6:]
                                 break
                         else:
@@ -78,6 +88,9 @@ async def process_stream_and_filter_think(stream_gen, print_output=True) -> str:
                 sys.stdout.write(buffer)
                 sys.stdout.flush()
             final_content.append(buffer)
+            _cb = stream_callback_var.get(None)
+            if _cb:
+                await _cb(buffer)
 
     except Exception as e:
         logger.error(f"Error while processing stream: {e}")
