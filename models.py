@@ -49,8 +49,16 @@ class SimulationContext(BaseModel):
     repair_history: list[dict] = Field(default_factory=list)
     simulation_success: bool = False
     
-    def add_repair_record(self, hint: str, confidence: float):
-        self.repair_history.append({"hint": hint, "confidence": confidence})
+    def add_repair_record(self, hint: str, confidence: float,
+                          error_message: str = "", code_before: str = "",
+                          code_after: str = ""):
+        self.repair_history.append({
+            "hint": hint,
+            "confidence": confidence,
+            "error_message": error_message,
+            "code_before": code_before,
+            "code_after": code_after,
+        })
 
     def update_best(self, code: str, confidence: float, output: str):
         self.best_code = code

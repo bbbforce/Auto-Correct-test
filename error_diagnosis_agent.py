@@ -96,6 +96,21 @@ class ErrorDiagnosisAgent:
 {code}
 {history_section}"""
 
+        # 从知识库检索已知修复方案
+        known_fixes_section = ""
+        from error_memory import ErrorMemory
+        try:
+            memory = ErrorMemory()
+            similar = memory.search(error_message, top_k=3)
+            known_fixes_section = memory.format_for_prompt(similar)
+            if known_fixes_section:
+                self.logger.info(f"Injected {len(similar)} known fixes from error memory")
+        except Exception as e:
+            self.logger.warning(f"Error memory lookup failed (non-fatal): {e}")
+
+        if known_fixes_section:
+            prompt += f"\n{known_fixes_section}"
+
         # 保存 prompt 到日志目录
         prompt_log_path = os.path.join(effective_log_dir, "last_prompt.txt") if effective_log_dir else "last_prompt.txt"
         with open(prompt_log_path, "a", encoding="utf-8") as f:

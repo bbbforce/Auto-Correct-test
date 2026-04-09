@@ -18,22 +18,27 @@
 【代码生成要求】
 - 不要使用 Markdown 格式。仅返回纯 Python 代码。
 - 请遵循以下结构：
-  1. 导入库（必须导入 matplotlib.pyplot as plt）
-  2. 定义几何结构和网格（构造形状或加载 .xml 文件）
+  1. 导入库（必须导入 matplotlib.pyplot as plt。如果涉及带孔洞/布尔运算的 3D 几何，必须导入 gmsh 和 meshio，且不得导入 mshr）
+  2. 定义几何结构和网格（构造形状或加载 .xml 文件）：
+     - 对于基础几何，可使用 FEniCS 内置的 BoxMesh、RectangleMesh 等。
+     - 绝对禁止使用 mshr 库处理任何包含布尔运算（如打孔、切割）的 3D 几何结构。
+     - 如果遇到带孔或需要布尔运算的 3D 几何，必须使用 gmsh 的 Python API 进行建模和生成 3D 网格。将网格保存为 .msh 后，使用 meshio 将其读取并转换为 .xdmf 格式，最后使用 XDMFFile 读入 FEniCS 的 Mesh() 对象中。并在脚本运行结束后清理这些临时网格文件。
+     - FEniCS (DOLFIN) 不支持读取 "mixed" 类型的网格单元。使用 `meshio` 从 Gmsh 转换网格为 XDMF 格式时，必须显式过滤出所需维度的最高阶单元。
   3. 定义函数空间（相场中 u/d 可合并或分离）
   4. 应用边界条件和初始条件
      - 对于随时间变化的 Dirichlet 条件，使用 `expr.t = t`
      - 优先使用 `interpolate()` 而不是 `project()`
   5. 定义弱形式 F 和 Jacobian J；使用 `solve()`
   6. 如果问题是瞬态的，请包含时间步进循环。
-  7. 绘制/保存可视化结果（关键）：
-     - 必须使用 `matplotlib.pyplot` 或 FEniCS 的 `plot(u)` 来绘制最终结果（如位移、温度、von Mises 应力）。
+  7. 绘制/保存可视化结果：
+     - 必须使用 `matplotlib.pyplot` 或 FEniCS 的 `plot()` 来绘制最终结果（如位移、温度、von Mises 应力）。
+     - **注意**：FEniCS 的 `Function` 对象没有 `.norm()` 方法。要绘制矢量场的幅值，必须先计算并投影。
      - 图表必须有标题（`plt.title('...')`）。
      - 图表必须有颜色条（`plt.colorbar(p)` 或类似方法，映射物理量）。
      - 将图表保存为 PNG 文件到 `result_dir` 目录下，使用描述性名称（如 `os.path.join(result_dir, "temperature_distribution.png")`）。
-  8. 输出物理指标（关键）：
+  8. 输出物理指标：
      - 在脚本末尾，必须提取并 `print()` 关键物理量最大值/最小值到标准输出。例如：最大位移、最大 von Mises 应力、最大/最小温度。
-     - 例如：`print(f"MAX_TEMPERATURE: {u.vector().max()}")`
+     - **注意**：不要直接对 `Function` 对象调用 `.max()`。必须使用 `u.vector().get_local().max()` 获取数值。
 
 【代码指南】
 - 输出必须是一个完全可执行的 Python 脚本（.py），不要包含 markdown 或解释。
@@ -49,3 +54,17 @@
   - 如果保存为 XDMF，必须使用 `XDMFFile(os.path.join(result_dir, "name.xdmf"))`。不要使用 `File("...xdmf")`。
   - 如果使用 `File()`，只能用于 `.pvd` 文件，例如 `File(os.path.join(result_dir, "name.pvd"))`。
 - 对于分母使用 `+ eps` 以提高数值稳定性（例如 `epsilon + eps`）。
+
+【XDMF 数据导出规则（供 ParaView 后处理渲染使用）】
+- 仿真完成后，必须使用 `XDMFFile` 将关键物理量保存为 XDMF+H5 文件对。这些数据会被 ParaView 自动读取和渲染，产出高质量可视化图片。
+- 典型保存示例：
+  ```python
+  # 保存位移场
+  xdmf_disp = XDMFFile(os.path.join(result_dir, "displacement.xdmf"))
+  xdmf_disp.write(u_sol)
+  # 保存应力场
+  xdmf_stress = XDMFFile(os.path.join(result_dir, "von_mises_stress.xdmf"))
+  xdmf_stress.write(von_mises_proj)
+  ```
+- **绝对禁止**在脚本中清理或删除 `.h5` 文件。XDMF 文件引用了同名的 `.h5` 文件，删除会导致数据丢失。
+- 对于 gmsh 生成的临时网格文件（`.msh`），可以在转换为 FEniCS Mesh 后清理，但最终提交到 `result_dir` 的 XDMF+H5 结果文件必须保留。

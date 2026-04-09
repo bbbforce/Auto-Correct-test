@@ -9,7 +9,7 @@ import uvicorn
 
 from pipeline import run_pipeline
 
-app = FastAPI(title="MCP-SIM 仿真工作台")
+app = FastAPI(title="agent协同仿真工作台")
 
 # 静态文件
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
@@ -226,6 +226,6 @@ async def ws_simulate(websocket: WebSocket):
             pass
 
 if __name__ == "__main__":
-    print("\n🧪 MCP-SIM 仿真工作台")
+    print("\n agent协同仿真工作台")
     print("   http://localhost:8000\n")
     uvicorn.run(app, host="0.0.0.0", port=8000)

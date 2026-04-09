@@ -24,7 +24,21 @@ class CodeBuilderAgent:
         data_str = json.dumps(parsed_data, ensure_ascii=False)
         try:
             prompt = f"Input Parameters:\n{data_str}"
-            
+
+            # 从知识库检索相关历史教训
+            from error_memory import ErrorMemory
+            try:
+                memory = ErrorMemory()
+                problem_type = parsed_data.get("problem_type", "")
+                tags = [problem_type] if problem_type else []
+                relevant = memory.search_by_tags(tags) if tags else []
+                lessons = memory.format_for_prompt(relevant)
+                if lessons:
+                    prompt += f"\n\n{lessons}"
+                    self.logger.info(f"Injected {len(relevant)} lessons from error memory")
+            except Exception as e:
+                self.logger.warning(f"Error memory lookup failed (non-fatal): {e}")
+
             print(f"\n--- CodeBuilderAgent Streaming Output ---")
             
             agent = self._get_agent()

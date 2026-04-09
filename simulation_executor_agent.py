@@ -2,10 +2,20 @@
 import subprocess
 import os
 import re
+import json
 from utils import setup_logger
 from models import ExecutionResult
 
 EXECUTION_TIMEOUT = 300  # 5分钟超时
+
+# ── ParaView OsMesa 离屏渲染配置 ──
+PVPYTHON = "/opt/paraview-osmesa/bin/pvpython"
+PARAVIEW_RENDER_SCRIPT = os.path.join(os.path.dirname(__file__), "paraview_render.py")
+PARAVIEW_RENDER_TIMEOUT = 60  # 秒
+PARAVIEW_ENV = {
+    "GALLIUM_DRIVER": "llvmpipe",
+    "MESA_GL_VERSION_OVERRIDE": "3.3",
+}
 
 
 class SimulationExecutorAgent:
@@ -53,6 +63,11 @@ class SimulationExecutorAgent:
 
             self.logger.info("Simulation executed successfully.")
             self.logger.info(f"Simulation output: {stdout}")
+
+            # ── ParaView 离屏渲染 ──
+            pv_files = self._run_paraview_render()
+            new_file_paths.extend(pv_files)
+
             return ExecutionResult(status="success", output=stdout, files=new_file_paths)
 
         except subprocess.TimeoutExpired:
@@ -68,6 +83,55 @@ class SimulationExecutorAgent:
             self.logger.error(f"Simulation execution failed with exception: {e}")
             new_file_paths = self._collect_new_files(before_files)
             return ExecutionResult(status="error", output=str(e), files=new_file_paths)
+
+    def _run_paraview_render(self) -> list[str]:
+        """调用 pvpython 对 result_dir 中的 XDMF 文件进行离屏渲染。
+
+        Returns:
+            渲染生成的 PNG 文件路径列表。失败时返回空列表。
+        """
+        if not os.path.exists(PVPYTHON):
+            self.logger.warning(f"pvpython not found at {PVPYTHON}, skipping ParaView render.")
+            return []
+
+        if not os.path.exists(PARAVIEW_RENDER_SCRIPT):
+            self.logger.warning(f"Render script not found: {PARAVIEW_RENDER_SCRIPT}")
+            return []
+
+        # 构建环境变量：继承当前环境 + 追加 OsMesa 专用变量
+        env = {**os.environ, **PARAVIEW_ENV}
+        lib_path = "/opt/paraview-osmesa/lib/mesa:/opt/paraview-osmesa/lib"
+        env["LD_LIBRARY_PATH"] = lib_path + ":" + env.get("LD_LIBRARY_PATH", "")
+
+        try:
+            self.logger.info(f"Starting ParaView render for: {self.result_dir}")
+            res = subprocess.run(
+                [PVPYTHON, PARAVIEW_RENDER_SCRIPT, self.result_dir],
+                capture_output=True,
+                text=True,
+                timeout=PARAVIEW_RENDER_TIMEOUT,
+                env=env,
+            )
+
+            # stderr 是日志，stdout 是 JSON 结果
+            if res.stderr:
+                self.logger.info(f"ParaView render log:\n{res.stderr.strip()}")
+
+            if res.returncode != 0:
+                self.logger.error(f"ParaView render failed (exit {res.returncode})")
+                return []
+
+            # 解析 stdout 中的 JSON 路径列表
+            rendered = json.loads(res.stdout.strip())
+            self.logger.info(f"ParaView rendered {len(rendered)} image(s): {rendered}")
+            return rendered
+
+        except subprocess.TimeoutExpired:
+            self.logger.warning(f"ParaView render timed out ({PARAVIEW_RENDER_TIMEOUT}s), skipping.")
+            return []
+        except Exception as e:
+            self.logger.error(f"ParaView render error: {e}")
+            return []
 
     def _collect_new_files(self, before_files: set) -> list[str]:
         """收集执行后新生成的图片文件。"""

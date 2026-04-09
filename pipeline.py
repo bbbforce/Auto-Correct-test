@@ -58,6 +58,37 @@ def _make_stream_cb(on_event, step: int):
     return cb
 
 
+async def _persist_repairs(context, logger, on_event):
+    """将成功修复记录持久化到错误知识库。"""
+    if not context.repair_history:
+        return
+    try:
+        from error_memory import ErrorMemory
+        memory = ErrorMemory()
+        count = 0
+        for record in context.repair_history:
+            error_msg = record.get("error_message", "")
+            if not error_msg:
+                continue
+            memory.add_entry(
+                error_message=error_msg,
+                root_cause=record.get("hint", ""),
+                fix_description=record.get("hint", ""),
+                code_before=record.get("code_before", ""),
+                code_after=record.get("code_after", ""),
+                confidence=record.get("confidence", 0.5),
+            )
+            count += 1
+        if count:
+            logger.info(f"Persisted {count} repair records to error memory")
+            await _emit(on_event, {
+                "type": "info", "step": 4,
+                "message": f"已将 {count} 条修复经验写入知识库 📚"
+            })
+    except Exception as e:
+        logger.warning(f"Failed to persist repairs to error memory: {e}")
+
+
 async def run_pipeline(
     prompt: str = "",
     prompt_file: str = None,
@@ -232,7 +263,13 @@ async def run_pipeline(
                     )
                 finally:
                     stream_callback_var.reset(token)
-                context.add_repair_record(diagnosis.hint, diagnosis.confidence)
+                code_before_fix = context.current_code
+                context.add_repair_record(
+                    diagnosis.hint, diagnosis.confidence,
+                    error_message=exec_result.output,
+                    code_before=code_before_fix,
+                    code_after=diagnosis.after_code or code_before_fix,
+                )
                 if diagnosis.after_code:
                     context.current_code = diagnosis.after_code
                     await _emit(on_event, {"type": "info", "step": 4, "message": "代码已修复 ✅"})
@@ -255,6 +292,8 @@ async def run_pipeline(
                 context.simulation_success = True
                 context.final_output = exec_result.output
                 await _emit(on_event, {"type": "info", "step": 4, "message": "仿真结果正确 ✅"})
+                # 持久化成功的修复记录到知识库
+                await _persist_repairs(context, logger, on_event)
                 break
             else:
                 await _emit(on_event, {"type": "info", "step": 4, "message": f"评估未通过: {eval_result.feedback[:200]}"})
@@ -268,7 +307,13 @@ async def run_pipeline(
                         )
                     finally:
                         stream_callback_var.reset(token)
-                    context.add_repair_record(diagnosis.hint, diagnosis.confidence)
+                    code_before_fix = context.current_code
+                    context.add_repair_record(
+                        diagnosis.hint, diagnosis.confidence,
+                        error_message="Physical/Logical Error: " + eval_result.feedback,
+                        code_before=code_before_fix,
+                        code_after=diagnosis.after_code or code_before_fix,
+                    )
                     if diagnosis.after_code:
                         context.current_code = diagnosis.after_code
 

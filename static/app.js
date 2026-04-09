@@ -438,11 +438,13 @@ function appendUserMessage(text, files) {
                 } else {
                     webUrl = `/files/uploads/${pathParts[pathParts.length-1]}`;
                 }
-                filesHtml += `<div class="msg-file-chip" style="padding:4px; max-width:140px;">
-                                 <img src="${webUrl}" alt="${f.name}" style="width:100%; border-radius:4px; object-fit:cover; aspect-ratio:1.2;">
+                filesHtml += `<div class="msg-image-chip">
+                                 <a href="${webUrl}" target="_blank" title="点击查看大图">
+                                    <img src="${webUrl}" alt="${f.name}">
+                                 </a>
                               </div>`;
             } else if (['png','jpg','jpeg','gif','webp'].includes(ext)) {
-                 // 新发布时可能是临时上传的图片文件（在当前浏览器域内有内存指向）但还没拼好 WebUrl
+                 // 新发布时可能是临时上传的图片文件（在当前浏览器域内有内存指向）但还没拼好 WebUrl，由于我们并不想在这里做 FileReader 临时预览，只展出名字
                 filesHtml += `<div class="msg-file-chip">🖼️ <span>${f.name}</span></div>`;
             } else {
                 const icon = { pdf:'📕', docx:'📘', xlsx:'📊', pptx:'📙' }[ext] || '📄';

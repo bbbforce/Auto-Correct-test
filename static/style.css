@@ -354,6 +354,24 @@ body {
     object-fit: cover;
 }
 
+.msg-image-chip {
+    background: #FFFFFF;
+    border: 1px solid var(--border-color);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    max-width: 280px;
+}
+.msg-image-chip img {
+    width: 100%;
+    height: auto;
+    max-height: 240px;
+    object-fit: contain;
+    border-radius: 4px;
+    display: block;
+    cursor: zoom-in;
+}
+
 /* ── 助手思考面板 (Thinking Panel) ──────────────────────── */
 .thinking-panel {
     background: var(--think-bg);
