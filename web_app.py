@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 import uvicorn
 
 from pipeline import run_pipeline
-
+from error_memory import ErrorMemory
 app = FastAPI(title="agent协同仿真工作台")
 
 # 静态文件
@@ -133,6 +133,32 @@ async def delete_history(run_id: str):
         except Exception as e:
             return JSONResponse(status_code=500, content={"message": str(e)})
     return JSONResponse(status_code=404, content={"message": "历史记录未找到"})
+
+@app.get("/api/error_memory")
+async def get_error_memory():
+    """获取错误知识库的内容及统计。"""
+    try:
+        em = ErrorMemory()
+        entries = em.entries
+        stats = em.get_stats()
+        # 按照出现次数倒序
+        sorted_entries = sorted(entries, key=lambda x: -x.get("occurrences", 1))
+        return JSONResponse(content={"entries": sorted_entries, "stats": stats})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e)})
+
+@app.delete("/api/error_memory/{entry_id}")
+async def delete_error_memory_entry(entry_id: str):
+    """删除指定的错误知识条目。"""
+    try:
+        em = ErrorMemory()
+        success = em.prune(entry_id)
+        if success:
+            return JSONResponse(content={"success": True, "message": "删除成功"})
+        else:
+            return JSONResponse(status_code=404, content={"message": "尚未找到该条目"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e)})
 
 @app.websocket("/ws/simulate")
 async def ws_simulate(websocket: WebSocket):

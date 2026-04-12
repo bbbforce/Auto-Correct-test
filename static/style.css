@@ -551,3 +551,167 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #D1D1D1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #A0A0A0; }
+
+/* ── 错误知识库 Modal ────────────────────────────────────── */
+.kb-trigger-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--text-color);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.kb-trigger-btn:hover {
+    background: #F4F5F6;
+    border-color: #CCC;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.modal-overlay.show {
+    display: flex;
+    animation: modalFadeIn 0.3s forwards;
+}
+@keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: var(--bg-color);
+    width: 90%;
+    max-width: 950px;
+    max-height: 85vh;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+.modal-overlay.show .modal-content {
+    transform: translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--surface-color);
+}
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.kb-chart-section {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 16px 0;
+}
+
+.kb-list-section {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.kb-list-header {
+    display: flex;
+    padding: 12px 16px;
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.kb-list-container {
+    display: flex;
+    flex-direction: column;
+    max-height: 380px;
+    overflow-y: auto;
+}
+
+.kb-list-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--text-color);
+    transition: background 0.2s;
+}
+.kb-list-item:hover {
+    background: #FAFAFA;
+}
+.kb-list-item:last-child {
+    border-bottom: none;
+}
+
+.kb-tag {
+    display: inline-block;
+    background: #E8F0FE;
+    color: #1A73E8;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    margin-right: 4px;
+    margin-bottom: 2px;
+}
+.kb-confidence {
+    font-weight: 600;
+}
+.kb-confidence.high { color: #188038; }
+.kb-confidence.medium { color: #E37400; }
+.kb-confidence.low { color: #D93025; }
+
+.kb-del-btn {
+    background: transparent;
+    border: 1px solid #FFCCC7;
+    color: #D93025;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+.kb-del-btn:hover {
+    background: #FFF1F0;
+    border-color: #FFA39E;
+}

@@ -611,3 +611,158 @@ function scrollToBottom() {
         chatOutput.scrollTop = chatOutput.scrollHeight;
     });
 }
+
+// ── 错误知识库逻辑 ──────────────────────────────────────
+const kbBtn = document.getElementById('kb-btn');
+const kbModal = document.getElementById('kb-modal');
+const kbCloseBtn = document.getElementById('kb-close-btn');
+const kbListContainer = document.getElementById('kb-list-container');
+let kbChartInstance = null;
+
+kbBtn.addEventListener('click', async () => {
+    kbModal.classList.add('show');
+    await loadKnowledgeBase();
+});
+
+kbCloseBtn.addEventListener('click', () => {
+    kbModal.classList.remove('show');
+});
+
+kbModal.addEventListener('click', (e) => {
+    if (e.target === kbModal) {
+        kbModal.classList.remove('show');
+    }
+});
+
+async function loadKnowledgeBase() {
+    kbListContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">数据加载中...</div>';
+    try {
+        const resp = await fetch('/api/error_memory');
+        const data = await resp.json();
+        renderKbList(data.entries || []);
+        renderKbChart(data.stats || {});
+    } catch (err) {
+        console.error('加载知识库失败:', err);
+        kbListContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #D93025;">加载失败，请检查网络或后端服务。</div>';
+    }
+}
+
+function renderKbList(entries) {
+    kbListContainer.innerHTML = '';
+    if (entries.length === 0) {
+        kbListContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">知识库目前为空。</div>';
+        return;
+    }
+
+    entries.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'kb-list-item';
+
+        // Tags
+        const tagsHtml = (item.tags || []).map(t => `<span class="kb-tag">${escapeHtml(t)}</span>`).join('');
+
+        // Confidence
+        const confValue = (item.confidence || 0) * 100;
+        let confClass = 'low';
+        if (confValue >= 80) confClass = 'high';
+        else if (confValue >= 50) confClass = 'medium';
+
+        row.innerHTML = `
+            <div style="flex: 0.8; font-family: monospace; font-size: 12px; color: var(--text-muted);">${item.id || '-'}</div>
+            <div style="flex: 0.5;">${item.occurrences || 1}</div>
+            <div style="flex: 0.6;" class="kb-confidence ${confClass}">${confValue.toFixed(0)}%</div>
+            <div style="flex: 1.5; display: flex; flex-wrap: wrap;">${tagsHtml}</div>
+            <div style="flex: 3; padding-right: 12px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${escapeHtml(item.error_pattern)}">
+                ${escapeHtml(item.error_pattern)}
+            </div>
+            <div style="flex: 0.6; text-align: center;">
+                <button class="kb-del-btn" data-id="${item.id}">删除</button>
+            </div>
+        `;
+
+        row.querySelector('.kb-del-btn').addEventListener('click', async (e) => {
+            const id = e.target.getAttribute('data-id');
+            if (confirm(`确定要删除经验条目 [${id}] 吗？\n删除后相当于清除了模型产生的这部分"无效幻觉/过时策略"，不可恢复。`)) {
+                try {
+                    const res = await fetch(`/api/error_memory/${id}`, { method: 'DELETE' });
+                    const resJson = await res.json();
+                    if (resJson.success) {
+                        await loadKnowledgeBase();
+                    } else {
+                        alert('删除失败: ' + resJson.message);
+                    }
+                } catch (err) {
+                    alert('删除请求出错: ' + err);
+                }
+            }
+        });
+
+        kbListContainer.appendChild(row);
+    });
+}
+
+function renderKbChart(stats) {
+    if (!window.echarts) return;
+    const chartDom = document.getElementById('kb-chart');
+    if (!kbChartInstance) {
+        kbChartInstance = echarts.init(chartDom);
+    }
+    
+    // 按频率升序排序，使得柱状图从上到下为降序，因为 echarts 水平柱状图是下到上画的
+    const sortedTags = Object.keys(stats).sort((a, b) => stats[a] - stats[b]);
+    const yAxisData = sortedTags;
+    const seriesData = sortedTags.map(tag => stats[tag]);
+
+    const option = {
+        title: {
+            text: '标签分布频率 (Tag Stats)',
+            textStyle: { fontSize: 13, fontWeight: 600, color: '#0D0D0D' },
+            left: '0'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' }
+        },
+        grid: {
+            left: '2%',
+            right: '4%',
+            bottom: '3%',
+            top: '30px',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'value',
+            boundaryGap: [0, 0.01],
+            splitLine: { lineStyle: { type: 'dashed', color: '#EEE' } }
+        },
+        yAxis: {
+            type: 'category',
+            data: yAxisData,
+            axisLabel: { color: '#555', fontSize: 11 },
+            axisLine: { lineStyle: { color: '#E5E5E5' } }
+        },
+        series: [
+            {
+                name: '出现次数',
+                type: 'bar',
+                data: seriesData,
+                barWidth: '60%',
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                        { offset: 0, color: '#4DA8FF' },
+                        { offset: 1, color: '#1A73E8' }
+                    ]),
+                    borderRadius: [0, 4, 4, 0]
+                }
+            }
+        ]
+    };
+    kbChartInstance.setOption(option);
+}
+
+// 窗口尺寸变化时重新调整图表大小
+window.addEventListener('resize', () => {
+    if (kbChartInstance) {
+        kbChartInstance.resize();
+    }
+});
