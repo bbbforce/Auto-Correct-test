@@ -1,33 +1,22 @@
+"""Agent: 结果评估 —— 评估仿真结果的物理正确性（支持视觉分析）。"""
+
 import os
-from autogen_agentchat.agents import AssistantAgent
-from config import get_llm_client, load_prompt
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.messages import ModelClientStreamingChunkEvent, ThoughtEvent, MultiModalMessage
+from autogen_agentchat.messages import MultiModalMessage
 from autogen_core import Image
-from utils import setup_logger
-from models import EvaluationResult
-from llm_utils import parse_llm_response, process_stream_and_filter_think
+
+from agents.base import BaseAgent
+from core.models import EvaluationResult
+from core.llm_utils import parse_llm_response, process_stream_and_filter_think
 
 
-class ResultEvaluationAgent:
-    def __init__(self, api_key: str, model: str = "gpt-4o", base_url: str = None, log_dir: str = None):
-        self.logger = setup_logger('result_evaluation_agent', 'result_evaluation_agent.log', log_dir=log_dir)
-        # We need a model with vision capabilities. (我们需要一个具备视觉能力的模型。)
-        self.model_client = get_llm_client(api_key, model, base_url, temperature=0.0, vision=True)
-        
-    def _get_agent(self) -> AssistantAgent:
-        # 注意：ResultEvaluationAgent 只负责诊断，不负责修复代码
-        system_message = load_prompt("result_evaluation.txt")
-        return AssistantAgent(
-            name="result_evaluation_agent",
-            model_client=self.model_client,
-            system_message=system_message,
-            model_client_stream=True
-        )
+class ResultEvaluationAgent(BaseAgent):
+    agent_name = "result_evaluation_agent"
+    prompt_file = "result_evaluation.txt"
+    enable_vision = True
 
     async def evaluate_results(self, prompt: str, code: str, simulation_output: str, image_paths: list[str]) -> EvaluationResult:
         self.logger.info("Evaluating simulation results...")
-        
+
         # Step 1: 将所有文本拼接为单一字符串
         text_content = (
             f"--- Original USER Prompt ---\n{prompt}\n\n"
@@ -62,12 +51,9 @@ class ResultEvaluationAgent:
             else:
                 task = text_content
 
-            print(f"\n--- ResultEvaluationAgent Streaming Output ---")
             agent = self._get_agent()
             response_text = await process_stream_and_filter_think(agent.run_stream(task=task), print_output=True)
-            print("\n----------------------------------------------")
-            
-            
+
             # 处理 response_text 可能是列表（MultiModal 回复）的情况
             if isinstance(response_text, list):
                 response_text = "".join(
@@ -77,7 +63,7 @@ class ResultEvaluationAgent:
 
             evaluation = parse_llm_response(response_text, EvaluationResult)
             return evaluation
-            
+
         except Exception as e:
             self.logger.error(f"Evaluation failed: {e}")
             return EvaluationResult(

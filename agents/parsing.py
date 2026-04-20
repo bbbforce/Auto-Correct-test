@@ -1,47 +1,27 @@
+"""Agent: 结构化解析 —— 将清晰化后的自然语言转换为结构化 JSON 参数。"""
+
 import json
 import os
-import datetime
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.messages import ModelClientStreamingChunkEvent, ThoughtEvent
-from config import get_llm_client, load_prompt
-from utils import setup_logger
-from llm_utils import extract_json_from_llm_response, process_stream_and_filter_think
+from agents.base import BaseAgent
+from core.llm_utils import extract_json_from_llm_response, process_stream_and_filter_think
 
 
-class ParsingAgent:
-    def __init__(self, api_key: str, model: str = "gpt-4o", base_url: str = None, log_dir: str = None):
-        self.logger = setup_logger('parsing_agent', 'parsing_agent.log', log_dir=log_dir)
-        self.log_dir = log_dir
-        self.model_client = get_llm_client(api_key, model, base_url, temperature=0.0)
-        
-    def _get_agent(self) -> AssistantAgent:
-        system_message = load_prompt("parsing.txt")
-        return AssistantAgent(
-            name="parsing_agent",
-            model_client=self.model_client,
-            system_message=system_message,
-            model_client_stream=True
-        )
+class ParsingAgent(BaseAgent):
+    agent_name = "parsing_agent"
+    prompt_file = "parsing.txt"
 
     async def parse(self, clarified_input: str) -> dict:
         self.logger.info(f"Parsing clarified input: {clarified_input}")
         response_content = None
         try:
             prompt = f"Input:\n{clarified_input}\n\nOutput:\n"
-            
-            # Send to LLM for parsing (发送至 LLM 进行解析)
-            print(f"\n--- ParsingAgent Streaming Output ---")
-            
+
             agent = self._get_agent()
             content = await process_stream_and_filter_think(agent.run_stream(task=prompt), print_output=True)
-            
-            print("\n-------------------------------------")
-            
-            response_content = content
 
+            response_content = content
             parsed_fields = extract_json_from_llm_response(content)
 
-            # Final output includes parsed fields + original text 
             # 最终输出包括解析后的字段 + 原始文本
             parsed_data = {
                 "parsed": parsed_fields,

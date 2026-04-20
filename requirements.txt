@@ -1,0 +1,57 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Multi-Agent Simulation Workbench (多Agent协同仿真工作台) — 依赖清单
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# 本项目依赖两个虚拟环境，分别承载不同职责：
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │  环境 1: autogen-env (主环境)                                           │
+# │  用途: 运行 Web 服务、CLI 入口、Agent 编排逻辑                           │
+# │  Python: 3.12+                                                         │
+# │                                                                        │
+# │  创建:                                                                  │
+# │    conda create -n autogen-env python=3.12                             │
+# │    conda activate autogen-env                                          │
+# │    pip install -r requirements.txt                                     │
+# ├──────────────────────────────────────────────────────────────────────────┤
+# │  环境 2: fenics-env (仿真执行环境)                                      │
+# │  用途: 运行 FEniCS/FEniCSx 仿真脚本（由 SimulationExecutorAgent 调用）  │
+# │  说明: FEniCS 依赖特殊的 C++ 后端和 PETSc 库，必须隔离安装              │
+# │                                                                        │
+# │  创建 (FEniCS 旧版, legacy API):                                       │
+# │    conda create -n fenics-env -c conda-forge fenics python=3.10        │
+# │                                                                        │
+# │  创建 (FEniCSx 新版, dolfinx API):                                     │
+# │    conda create -n fenics-env -c conda-forge fenicsX python=3.12       │
+# │                                                                        │
+# │  注意: fenics-env 无需安装本文件的依赖，它通过 subprocess 被调用         │
+# │        （pipeline 中使用 `conda run -n fenics-env python xxx.py`）      │
+# └──────────────────────────────────────────────────────────────────────────┘
+#
+# 可选组件:
+#   - ParaView OsMesa: 离屏渲染仿真结果图片，需单独安装
+#     下载: https://www.paraview.org/download/ (选 osmesa 版本)
+#     配置: 在 .env 中设置 PVPYTHON_PATH=/opt/paraview-osmesa/bin/pvpython
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── 核心框架 ──────────────────────────────────────────────────────────────────
+autogen-agentchat==0.7.5          # 多 Agent 对话框架
+autogen-ext[openai]==0.7.5        # AutoGen 扩展（OpenAI 兼容接口）
+pydantic>=2.0                     # Agent 间通信的数据模型校验
+python-dotenv>=1.0                # 从 .env 文件加载环境变量
+
+# ── Web 服务 ──────────────────────────────────────────────────────────────────
+fastapi>=0.100                    # Web API 框架
+uvicorn>=0.20                     # ASGI 服务器
+websockets>=12.0                  # WebSocket 实时通信
+
+# ── 文件解析（按需安装，缺少时对应格式会给出友好提示）────────────────────────
+PyMuPDF>=1.23                     # PDF 解析 (.pdf)
+python-docx>=0.8                  # Word 解析 (.docx)
+openpyxl>=3.1                     # Excel 解析 (.xlsx)
+python-pptx>=0.6                  # PPT 解析 (.pptx)
+
+# ── 开发与测试 ────────────────────────────────────────────────────────────────
+pytest>=7.0                       # 单元测试框架
+pytest-asyncio>=0.21              # 异步测试支持

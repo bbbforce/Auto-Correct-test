@@ -1,26 +1,18 @@
+"""Agent: 输入清晰化 —— 将用户的模糊输入转化为清晰的仿真规格描述。"""
+
 import os
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.messages import ModelClientStreamingChunkEvent, ThoughtEvent, TextMessage, MultiModalMessage
+from autogen_agentchat.messages import MultiModalMessage
 from autogen_core import Image
-from config import get_llm_client, load_prompt
-from utils import setup_logger
-from llm_utils import process_stream_and_filter_think
+
+from agents.base import BaseAgent
+from core.llm_utils import process_stream_and_filter_think
 
 
-class InputClarifierAgent:
-    def __init__(self, api_key: str, model: str = "gpt-4o", base_url: str = None, log_dir: str = None):
-        self.logger = setup_logger('input_clarifier_agent', 'input_clarifier_agent.log', log_dir=log_dir)
-        # 启用 vision 以支持图片输入
-        self.model_client = get_llm_client(api_key, model, base_url, temperature=0.2, vision=True)
-        
-    def _get_agent(self) -> AssistantAgent:
-        system_message = load_prompt("input_clarifier.txt")
-        return AssistantAgent(
-            name="input_clarifier_agent",
-            model_client=self.model_client,
-            system_message=system_message,
-            model_client_stream=True
-        )
+class InputClarifierAgent(BaseAgent):
+    agent_name = "input_clarifier"
+    prompt_file = "input_clarifier.txt"
+    enable_vision = True
+    temperature = 0.2
 
     async def clarify(self, raw_input: str, images: list[str] = None) -> str:
         """澄清用户输入，支持附带图片的多模态输入。
@@ -34,9 +26,7 @@ class InputClarifierAgent:
             self.logger.info("Clarifying input: %s", raw_input)
             if images:
                 self.logger.info("附带 %d 张图片", len(images))
-            
-            print(f"\n--- InputClarifierAgent Streaming Output ---")
-            
+
             agent = self._get_agent()
 
             # 构造 task：有图片时使用 MultiModalMessage，否则使用纯文本
@@ -60,8 +50,6 @@ class InputClarifierAgent:
 
             refined = await process_stream_and_filter_think(agent.run_stream(task=task), print_output=True)
 
-            print("\n-------------------------------------------")
-            
             self.logger.info("Clarified result: %s", refined)
             return refined
         except Exception as e:

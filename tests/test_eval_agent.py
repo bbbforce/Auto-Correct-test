@@ -9,7 +9,7 @@
 import asyncio
 import os
 from dotenv import load_dotenv
-from result_evaluation_agent import ResultEvaluationAgent
+from agents.result_evaluation import ResultEvaluationAgent
 
 async def main():
     load_dotenv()

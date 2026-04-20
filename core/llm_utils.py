@@ -35,7 +35,7 @@ async def process_stream_and_filter_think(stream_gen, print_output=True) -> str:
         async for msg in stream_gen:
             if isinstance(msg, ThoughtEvent):
                 continue
-                
+
             if hasattr(msg, "content") and isinstance(msg.content, str):
                 if isinstance(msg, ModelClientStreamingChunkEvent):
                     chunk = msg.content
@@ -60,7 +60,7 @@ async def process_stream_and_filter_think(stream_gen, print_output=True) -> str:
                             else:
                                 if len(buffer) < 7:
                                     break
-                                
+
                                 safe_part = buffer[:-6]
                                 if safe_part:
                                     if print_output:

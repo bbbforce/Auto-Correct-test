@@ -2,7 +2,7 @@ import asyncio
 import os
 from dotenv import load_dotenv
 
-from mechanical_insight_agent import MechanicalInsightAgent
+from agents.mechanical_insight import MechanicalInsightAgent
 
 async def main():
     if not load_dotenv(".env"): 

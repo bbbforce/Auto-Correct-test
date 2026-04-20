@@ -8,8 +8,8 @@ from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from simulation_executor_agent import SimulationExecutorAgent
-from models import ExecutionResult
+from agents.simulation_executor import SimulationExecutorAgent
+from core.models import ExecutionResult
 
 
 class TestSimulationExecutorAgent:
@@ -30,9 +30,10 @@ class TestSimulationExecutorAgent:
         with open(self.agent.simulation_filename, "r") as f:
             assert f.read() == code
 
-    @patch("simulation_executor_agent.subprocess.run")
+    @patch("agents.simulation_executor.subprocess.run")
     def test_successful_execution(self, mock_run):
         mock_run.return_value = MagicMock(
+            returncode=0,
             stdout="MAX_TEMPERATURE: 100.0\nMIN_TEMPERATURE: 0.0",
             stderr="",
         )
@@ -41,7 +42,7 @@ class TestSimulationExecutorAgent:
         assert result.status == "success"
         assert "MAX_TEMPERATURE" in result.output
 
-    @patch("simulation_executor_agent.subprocess.run")
+    @patch("agents.simulation_executor.subprocess.run")
     def test_error_detection_in_stdout(self, mock_run):
         mock_run.return_value = MagicMock(
             stdout="Traceback (most recent call last):\n  ...\nNameError: name 'x' is not defined",
@@ -51,7 +52,7 @@ class TestSimulationExecutorAgent:
         assert result.status == "error"
         assert "Traceback" in result.output
 
-    @patch("simulation_executor_agent.subprocess.run")
+    @patch("agents.simulation_executor.subprocess.run")
     def test_timeout_handling(self, mock_run):
         import subprocess
         mock_run.side_effect = subprocess.TimeoutExpired(cmd="python test.py", timeout=300)
@@ -59,7 +60,7 @@ class TestSimulationExecutorAgent:
         assert result.status == "timeout"
         assert "超时" in result.output
 
-    @patch("simulation_executor_agent.subprocess.run")
+    @patch("agents.simulation_executor.subprocess.run")
     def test_called_process_error(self, mock_run):
         import subprocess
         mock_run.side_effect = subprocess.CalledProcessError(

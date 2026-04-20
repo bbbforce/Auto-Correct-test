@@ -1,26 +1,25 @@
 """
-MCP-SIM 仿真工作流管道 —— 从 main.py 提取的核心编排逻辑。
+多agent协同仿真工作流管道 —— 从 main.py 提取的核心编排逻辑。
 支持 CLI 和 Web 两种入口，通过 on_event 回调推送实时状态。
 """
 
 import asyncio
 import os
 import logging
-from dataclasses import dataclass, field
 from typing import Callable, Optional
 from dotenv import load_dotenv
 
-from input_clarifier_agent import InputClarifierAgent
-from parsing_agent import ParsingAgent
-from code_builder_agent import CodeBuilderAgent
-from simulation_executor_agent import SimulationExecutorAgent
-from error_diagnosis_agent import ErrorDiagnosisAgent
-from mechanical_insight_agent import MechanicalInsightAgent
-from result_evaluation_agent import ResultEvaluationAgent
-from file_parser import parse_files as do_parse_files
-from models import SimulationContext
-from utils import setup_logger, create_run_dir
-from llm_utils import stream_callback_var
+from agents.input_clarifier import InputClarifierAgent
+from agents.parsing import ParsingAgent
+from agents.code_builder import CodeBuilderAgent
+from agents.simulation_executor import SimulationExecutorAgent
+from agents.error_diagnosis import ErrorDiagnosisAgent
+from agents.mechanical_insight import MechanicalInsightAgent
+from agents.result_evaluation import ResultEvaluationAgent
+from services.file_parser import parse_files as do_parse_files
+from core.models import SimulationContext, PipelineResult
+from core.utils import setup_logger, create_run_dir
+from core.llm_utils import stream_callback_var
 
 STEP_NAMES = {
     1: "输入清晰化",
@@ -29,17 +28,6 @@ STEP_NAMES = {
     4: "执行与校正",
     5: "分析报告",
 }
-
-
-@dataclass
-class PipelineResult:
-    success: bool = False
-    run_dir: str = ""
-    report: str = ""
-    final_output: str = ""
-    generated_code: str = ""
-    result_images: list[str] = field(default_factory=list)
-    error_message: str = ""
 
 
 async def _emit(on_event, event: dict):
@@ -63,7 +51,7 @@ async def _persist_repairs(context, logger, on_event):
     if not context.repair_history:
         return
     try:
-        from error_memory import ErrorMemory
+        from services.error_memory import ErrorMemory
         memory = ErrorMemory()
         count = 0
         for record in context.repair_history:
@@ -96,7 +84,7 @@ async def run_pipeline(
     max_retries: int = 3,
     on_event: Callable = None,
 ) -> PipelineResult:
-    """执行完整的 MCP-SIM 仿真管道。"""
+    """执行完整的多agent协同仿真管道。"""
 
     result = PipelineResult()
 

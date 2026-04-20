@@ -6,7 +6,7 @@ import os
 # 把项目根目录加入 sys.path，使 import 正常工作
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from models import DiagnosisResult, EvaluationResult, ExecutionResult, ParsedSimulation
+from core.models import DiagnosisResult, EvaluationResult, ExecutionResult, ParsedSimulation
 
 
 # ─── DiagnosisResult ───

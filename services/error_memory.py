@@ -5,9 +5,9 @@
 将相关历史知识注入 prompt。
 
 CLI 用法:
-    python error_memory.py --list              列出所有知识条目
-    python error_memory.py --prune <id>        删除指定条目
-    python error_memory.py --stats             按 Tag 统计错误频率
+    python -m services.error_memory --list              列出所有知识条目
+    python -m services.error_memory --prune <id>        删除指定条目
+    python -m services.error_memory --stats             按 Tag 统计错误频率
 """
 
 import argparse
@@ -20,8 +20,10 @@ import uuid
 from collections import Counter
 from typing import Optional
 
+from core import PROJECT_ROOT
+
 # 知识库文件路径
-MEMORY_DIR = os.path.join(os.path.dirname(__file__), "memory")
+MEMORY_DIR = os.path.join(PROJECT_ROOT, "memory")
 KNOWLEDGE_FILE = os.path.join(MEMORY_DIR, "error_knowledge.json")
 
 

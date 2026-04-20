@@ -1,6 +1,7 @@
 # 环境变量（含 API Key，绝不上传）
 .env
 .env.*
+!.env.example
 
 # Python 缓存
 __pycache__/
@@ -12,6 +13,10 @@ __pycache__/
 *.log
 
 # 运行产物（每次运行自动生成，不需要版本管理）
+runs/
+uploads/
+result/
+*.h5
 error_logs.txt
 last_prompt.txt
 parsed_results.jsonl

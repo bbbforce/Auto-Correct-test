@@ -1,16 +1,18 @@
-# simulation_executor_agent.py
+"""Agent: 仿真执行 —— 运行生成的 FEniCS 代码并收集结果。"""
+
 import subprocess
 import os
 import re
 import json
-from utils import setup_logger
-from models import ExecutionResult
+from core.utils import setup_logger
+from core.models import ExecutionResult
+from core import PROJECT_ROOT
 
 EXECUTION_TIMEOUT = 300  # 5分钟超时
 
 # ── ParaView OsMesa 离屏渲染配置 ──
-PVPYTHON = "/opt/paraview-osmesa/bin/pvpython"
-PARAVIEW_RENDER_SCRIPT = os.path.join(os.path.dirname(__file__), "paraview_render.py")
+PVPYTHON = os.environ.get("PVPYTHON_PATH", "/opt/paraview-osmesa/bin/pvpython")
+PARAVIEW_RENDER_SCRIPT = os.path.join(PROJECT_ROOT, "services", "paraview_render.py")
 PARAVIEW_RENDER_TIMEOUT = 60  # 秒
 PARAVIEW_ENV = {
     "GALLIUM_DRIVER": "llvmpipe",
@@ -19,13 +21,15 @@ PARAVIEW_ENV = {
 
 
 class SimulationExecutorAgent:
+    """仿真执行器（非 LLM Agent，不继承 BaseAgent）。"""
+
     def __init__(self, result_dir: str = "result", log_dir: str = None):
         self.logger = setup_logger('simulation_executor_agent', 'simulation_executor_agent.log', log_dir=log_dir)
         self.simulation_filename = "generated_simulation.py"
         self.result_dir = result_dir
 
     def save_code_to_file(self, code: str):
-        """Save the generated Python simulation code to a file.(将生成的 Python 仿真代码保存到文件中。)"""
+        """将生成的 Python 仿真代码保存到文件中。"""
         with open(self.simulation_filename, "w", encoding="utf-8") as f:
             f.write(code)
         self.logger.info(f"Simulation code saved to {self.simulation_filename}")

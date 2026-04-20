@@ -5,8 +5,8 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from llm_utils import extract_json_from_llm_response, parse_llm_response
-from models import DiagnosisResult, EvaluationResult
+from core.llm_utils import extract_json_from_llm_response, parse_llm_response
+from core.models import DiagnosisResult, EvaluationResult
 
 
 # ─── extract_json_from_llm_response ───

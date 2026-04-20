@@ -2,7 +2,7 @@ import asyncio
 import os
 from dotenv import load_dotenv
 
-from input_clarifier_agent import InputClarifierAgent
+from agents.input_clarifier import InputClarifierAgent
 
 async def main():
     load_dotenv()

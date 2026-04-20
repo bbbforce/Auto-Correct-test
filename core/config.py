@@ -1,5 +1,7 @@
 import os
+import logging
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from core import PROJECT_ROOT
 
 def get_llm_client(api_key: str, model: str = "gpt-4o", base_url: str = None, temperature: float = 0.0, vision: bool = False):
     """
@@ -23,11 +25,10 @@ def load_prompt(filename: str) -> str:
     """
     从 prompts 目录加载提示词模板。
     """
-    prompt_path = os.path.join(os.path.dirname(__file__), "prompts", filename)
+    prompt_path = os.path.join(PROJECT_ROOT, "prompts", filename)
     try:
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read().strip()
     except FileNotFoundError:
-        import logging
         logging.getLogger(__name__).warning(f"Prompt file not found: {prompt_path}")
         return ""

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from models import DiagnosisResult, EvaluationResult
+from core.models import DiagnosisResult, EvaluationResult
 
 
 def _make_stub_logger():
@@ -21,9 +21,9 @@ class TestErrorDiagnosisAgent:
     """测试 ErrorDiagnosisAgent 的 prompt 构造和返回值解析（mock LLM）。"""
 
     @pytest.mark.asyncio
-    @patch("error_diagnosis_agent.save_error_log")
+    @patch("agents.error_diagnosis.save_error_log")
     async def test_successful_diagnosis(self, mock_save_log):
-        from error_diagnosis_agent import ErrorDiagnosisAgent
+        from agents.error_diagnosis import ErrorDiagnosisAgent
 
         agent = ErrorDiagnosisAgent.__new__(ErrorDiagnosisAgent)
         agent.agent = MagicMock()
@@ -47,9 +47,9 @@ class TestErrorDiagnosisAgent:
         assert "import os" in result.after_code
 
     @pytest.mark.asyncio
-    @patch("error_diagnosis_agent.save_error_log")
+    @patch("agents.error_diagnosis.save_error_log")
     async def test_diagnosis_with_repair_history(self, mock_save_log):
-        from error_diagnosis_agent import ErrorDiagnosisAgent
+        from agents.error_diagnosis import ErrorDiagnosisAgent
 
         agent = ErrorDiagnosisAgent.__new__(ErrorDiagnosisAgent)
         agent.agent = MagicMock()
@@ -86,9 +86,9 @@ class TestErrorDiagnosisAgent:
         assert "Fixed boundary condition" in captured_prompts[0]
 
     @pytest.mark.asyncio
-    @patch("error_diagnosis_agent.save_error_log")
+    @patch("agents.error_diagnosis.save_error_log")
     async def test_diagnosis_fallback_on_failure(self, mock_save_log):
-        from error_diagnosis_agent import ErrorDiagnosisAgent
+        from agents.error_diagnosis import ErrorDiagnosisAgent
 
         agent = ErrorDiagnosisAgent.__new__(ErrorDiagnosisAgent)
         agent.agent = MagicMock()
@@ -112,7 +112,7 @@ class TestResultEvaluationAgent:
 
     @pytest.mark.asyncio
     async def test_successful_evaluation(self):
-        from result_evaluation_agent import ResultEvaluationAgent
+        from agents.result_evaluation import ResultEvaluationAgent
 
         agent = ResultEvaluationAgent.__new__(ResultEvaluationAgent)
         agent.agent = MagicMock()
@@ -139,7 +139,7 @@ class TestResultEvaluationAgent:
 
     @pytest.mark.asyncio
     async def test_evaluation_fallback_on_failure(self):
-        from result_evaluation_agent import ResultEvaluationAgent
+        from agents.result_evaluation import ResultEvaluationAgent
 
         agent = ResultEvaluationAgent.__new__(ResultEvaluationAgent)
         agent.agent = MagicMock()

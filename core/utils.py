@@ -33,7 +33,7 @@ def setup_logger(name, log_file, level=logging.INFO, log_dir=None):
     # Clear existing handlers to prevent log duplication across multiple runs 
     # (清除现有句柄以防止多次运行中日志重复)
     logger.handlers.clear()
-    
+
     logger.addHandler(handler)
     logger.addHandler(console_handler)
 

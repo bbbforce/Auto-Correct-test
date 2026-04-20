@@ -1,5 +1,5 @@
 """
-MCP-SIM CLI 入口 —— 通过命令行启动仿真管道。
+CLI 入口 —— 通过命令行启动仿真管道。
 """
 
 import asyncio
@@ -8,9 +8,9 @@ from pipeline import run_pipeline
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="MCP-SIM Asynchronous Orchestrator")
+    parser = argparse.ArgumentParser(description="多agent协同仿真工作台")
     parser.add_argument("--prompt", type=str, help="输入对模拟过程的自然语言描述", default=None)
-    parser.add_argument("--prompt_file", type=str, help="输入包含模拟提示词的文本文件路径", default="prompt.txt")
+    parser.add_argument("--prompt_file", type=str, help="输入包含模拟提示词的文本文件路径", default="examples/prompt.txt")
     parser.add_argument("--files", nargs="+", type=str, help="上传文件路径（支持图片、PDF、Word、Excel、PPT等）", default=[])
     parser.add_argument("--max_retries", type=int, default=3, help="设置代码执行的最大重试次数")
     args = parser.parse_args()

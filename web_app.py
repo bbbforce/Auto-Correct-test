@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import shutil
 import asyncio
 from fastapi import FastAPI, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
@@ -8,7 +9,8 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 import uvicorn
 
 from pipeline import run_pipeline
-from error_memory import ErrorMemory
+from services.error_memory import ErrorMemory
+
 app = FastAPI(title="agent协同仿真工作台")
 
 # 静态文件
