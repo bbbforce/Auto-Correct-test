@@ -16,7 +16,7 @@
 - 'phase_field_fracture'：带损伤变量 d（非线性耦合系统，范围 0–1）的相场断裂
 
 【代码生成要求】
-- 不要使用 Markdown 格式。仅返回纯 Python 代码。
+- 不要使用 Markdown 代码块格式。仅返回纯 Python 代码。
 - 请遵循以下结构：
   1. 导入库（必须导入 matplotlib.pyplot as plt。如果涉及带孔洞/布尔运算的 3D 几何，必须导入 gmsh 和 meshio，且不得导入 mshr）
   2. 定义几何结构和网格（构造形状或加载 .xml 文件）：

@@ -99,6 +99,16 @@ class ErrorDiagnosisAgent(BaseAgent):
         if known_fixes_section:
             prompt += f"\n{known_fixes_section}"
 
+        # 从本地 Demo 库检索相关参考代码
+        from services.demo_retriever import retrieve_demos_for_error
+        try:
+            demo_ref = retrieve_demos_for_error(error_message, code)
+            if demo_ref:
+                prompt += f"\n{demo_ref}"
+                self.logger.info("Injected demo reference for error diagnosis")
+        except Exception as e:
+            self.logger.warning(f"Demo retrieval for error failed (non-fatal): {e}")
+
         # 保存 prompt 到日志目录
         prompt_log_path = os.path.join(effective_log_dir, "last_prompt.txt") if effective_log_dir else "last_prompt.txt"
         with open(prompt_log_path, "a", encoding="utf-8") as f:

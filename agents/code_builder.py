@@ -7,7 +7,7 @@ from core.llm_utils import process_stream_and_filter_think
 
 class CodeBuilderAgent(BaseAgent):
     agent_name = "code_builder_agent"
-    prompt_file = "code_builder.txt"  # 可选 code_builder_fenicsx 用于新版本
+    prompt_file = "code_builder_fenicsx.txt"  # 可选 code_builder_fenicsx.txt 用于新版本
 
     async def build_code(self, parsed_data: dict) -> str:
         self.logger.info(f"Building code from parsed data: {parsed_data}")
@@ -28,6 +28,16 @@ class CodeBuilderAgent(BaseAgent):
                     self.logger.info(f"Injected {len(relevant)} lessons from error memory")
             except Exception as e:
                 self.logger.warning(f"Error memory lookup failed (non-fatal): {e}")
+
+            # 从本地 Demo 库检索相关参考代码
+            from services.demo_retriever import retrieve_demos
+            try:
+                demo_ref = retrieve_demos(parsed_data)
+                if demo_ref:
+                    prompt += f"\n\n{demo_ref}"
+                    self.logger.info("Injected demo reference into prompt")
+            except Exception as e:
+                self.logger.warning(f"Demo retrieval failed (non-fatal): {e}")
 
             agent = self._get_agent()
             code = await process_stream_and_filter_think(agent.run_stream(task=prompt), print_output=True)

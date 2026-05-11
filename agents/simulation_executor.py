@@ -1,4 +1,4 @@
-"""Agent: 仿真执行 —— 运行生成的 FEniCS 代码并收集结果。"""
+"""Agent: 仿真执行 —— 运行生成的 FEniCSx 代码并收集结果。"""
 
 import subprocess
 import os
@@ -48,7 +48,7 @@ class SimulationExecutorAgent:
 
         try:
             res = subprocess.run(
-                ["conda", "run", "-n", "fenics-env", "python", self.simulation_filename],
+                ["conda", "run", "-n", "fenicsx-env", "python", self.simulation_filename],
                 capture_output=True,
                 text=True,
                 timeout=EXECUTION_TIMEOUT,
