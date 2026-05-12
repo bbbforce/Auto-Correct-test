@@ -9,6 +9,17 @@ class CodeBuilderAgent(BaseAgent):
     agent_name = "code_builder_agent"
     prompt_file = "code_builder_fenicsx.txt"  # 可选 code_builder_fenicsx.txt 用于新版本
 
+    # ── 生成参数 ──
+    # temperature = 0.6         # 继承基类默认
+    # top_p = None              # 使用 API 默认值
+    # max_tokens = None         # 使用 API 默认值
+    # reasoning_effort = None   # None = 不启用; 可选 'minimal'|'low'|'medium'|'high'
+
+    # ── 模型能力声明 ──
+    # enable_vision = False     # 继承基类默认
+    # function_calling = True   # 继承基类默认
+    # json_output = True        # 继承基类默认
+
     async def build_code(self, parsed_data: dict) -> str:
         self.logger.info(f"Building code from parsed data: {parsed_data}")
         data_str = json.dumps(parsed_data, ensure_ascii=False)

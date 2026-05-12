@@ -10,6 +10,17 @@ class ParsingAgent(BaseAgent):
     agent_name = "parsing_agent"
     prompt_file = "parsing.txt"
 
+    # ── 生成参数 ──
+    # temperature = 0.6         # 继承基类默认
+    # top_p = None              # 使用 API 默认值
+    # max_tokens = None         # 使用 API 默认值
+    # reasoning_effort = None   # None = 不启用; 可选 'minimal'|'low'|'medium'|'high'
+
+    # ── 模型能力声明 ──
+    # enable_vision = False     # 继承基类默认
+    # function_calling = True   # 继承基类默认
+    # json_output = True        # 继承基类默认
+
     async def parse(self, clarified_input: str) -> dict:
         self.logger.info(f"Parsing clarified input: {clarified_input}")
         response_content = None

@@ -11,8 +11,17 @@ from core.llm_utils import process_stream_and_filter_think
 class InputClarifierAgent(BaseAgent):
     agent_name = "input_clarifier"
     prompt_file = "input_clarifier.txt"
-    enable_vision = True
+
+    # ── 生成参数 ──
     temperature = 0.2
+    # top_p = None              # 使用 API 默认值
+    # max_tokens = None         # 使用 API 默认值
+    # reasoning_effort = None   # None = 不启用; 可选 'minimal'|'low'|'medium'|'high'
+
+    # ── 模型能力声明 ──
+    enable_vision = True
+    # function_calling = True   # 继承基类默认
+    # json_output = True        # 继承基类默认
 
     async def clarify(self, raw_input: str, images: list[str] = None) -> str:
         """澄清用户输入，支持附带图片的多模态输入。

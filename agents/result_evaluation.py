@@ -12,7 +12,17 @@ from core.llm_utils import parse_llm_response, process_stream_and_filter_think
 class ResultEvaluationAgent(BaseAgent):
     agent_name = "result_evaluation_agent"
     prompt_file = "result_evaluation.txt"
+
+    # ── 生成参数 ──
+    # temperature = 0.6         # 继承基类默认
+    # top_p = None              # 使用 API 默认值
+    # max_tokens = None         # 使用 API 默认值
+    # reasoning_effort = None   # None = 不启用; 可选 'minimal'|'low'|'medium'|'high'
+
+    # ── 模型能力声明 ──
     enable_vision = True
+    # function_calling = True   # 继承基类默认
+    # json_output = True        # 继承基类默认
 
     async def evaluate_results(self, prompt: str, code: str, simulation_output: str, image_paths: list[str]) -> EvaluationResult:
         self.logger.info("Evaluating simulation results...")

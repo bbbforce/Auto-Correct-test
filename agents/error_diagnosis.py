@@ -32,6 +32,17 @@ class ErrorDiagnosisAgent(BaseAgent):
     agent_name = "error_diagnosis_agent"
     prompt_file = "error_diagnosis.txt"
 
+    # ── 生成参数 ──
+    # temperature = 0.6         # 继承基类默认
+    # top_p = None              # 使用 API 默认值
+    # max_tokens = None         # 使用 API 默认值
+    # reasoning_effort = None   # None = 不启用; 可选 'minimal'|'low'|'medium'|'high'
+
+    # ── 模型能力声明 ──
+    # enable_vision = False     # 继承基类默认
+    # function_calling = True   # 继承基类默认
+    # json_output = True        # 继承基类默认
+
     async def diagnose_and_fix(
         self,
         error_message: str,
