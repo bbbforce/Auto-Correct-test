@@ -254,6 +254,13 @@ if (mobileSidebarToggle) {
     });
 }
 
+const mobileSidebarClose = document.getElementById('mobile-sidebar-close');
+if (mobileSidebarClose) {
+    mobileSidebarClose.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+    });
+}
+
 // ── 文件上传 ──────────────────────────────────────────
 attachBtn.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
