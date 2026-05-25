@@ -6,6 +6,7 @@ import datetime
 from agents.base import BaseAgent
 from core.models import DiagnosisResult
 from core.llm_utils import parse_llm_response, process_stream_and_filter_think
+from services.code_validator import validate_code, validate_api_patterns
 
 ERROR_LOG_FILE = "error_logs.txt"
 
@@ -76,12 +77,16 @@ class ErrorDiagnosisAgent(BaseAgent):
         # 构建历史修复记录部分
         history_section = ""
         if repair_history:
-            history_section = "\n[Previous Repair History — DO NOT repeat the same fixes]\n"
+            history_section = "\n[Previous Repair History — 以下修改必须保留，在此基础上继续修复]\n"
             for i, record in enumerate(repair_history):
                 history_section += (
-                    f"  Attempt {i+1}: {record.get('hint', 'N/A')} "
-                    f"(confidence: {record.get('confidence', 'N/A')})\n"
+                    f"\n--- Attempt {i+1} ---\n"
+                    f"错误: {record.get('error_message', 'N/A')[:200]}\n"
+                    f"修复说明: {record.get('hint', 'N/A')}\n"
+                    f"置信度: {record.get('confidence', 'N/A')}\n"
                 )
+                if record.get('code_after'):
+                    history_section += "修复后代码已作为当前代码传入（请在此基础上修改，不要回退）\n"
 
         prompt = f"""
 🧾 Input Data:
@@ -91,9 +96,22 @@ class ErrorDiagnosisAgent(BaseAgent):
 [Simulation Output Log]
 {simulation_output}
 
+⚠️ 关键规则：你收到的 [Original Code] 是经过前几轮修复的最新版本。
+你必须在此基础上修改，严禁回退之前已修复的内容。
+
 [Original Code]
 {code}
 {history_section}"""
+
+        # ── P0: 注入 API 数据库上下文 ──
+        from services.api_context import get_api_context_for_error
+        try:
+            api_ref = get_api_context_for_error(error_message, code)
+            if api_ref:
+                prompt += f"\n{api_ref}"
+                self.logger.info("Injected API database context for error diagnosis")
+        except Exception as e:
+            self.logger.warning(f"API context injection failed (non-fatal): {e}")
 
         # 从知识库检索已知修复方案
         known_fixes_section = ""
@@ -133,6 +151,29 @@ class ErrorDiagnosisAgent(BaseAgent):
 
             diagnosis = parse_llm_response(content, DiagnosisResult)
             diagnosis.before_code = code
+
+            # P1: 综合静态检查（替代原硬编码的 _validate_known_patterns）
+            if diagnosis.after_code:
+                is_valid, all_warnings = validate_code(diagnosis.after_code)
+                if not is_valid or all_warnings:
+                    self.logger.warning(f"静态检查发现 {len(all_warnings)} 个问题，触发二次修复")
+                    retry_prompt = (
+                        f"你上一次修复的代码仍包含以下问题，请修正：\n"
+                        + "\n".join(f"  - {w}" for w in all_warnings)
+                        + f"\n\n[需要修正的代码]\n{diagnosis.after_code}"
+                    )
+                    try:
+                        retry_content = await process_stream_and_filter_think(
+                            agent.run_stream(task=retry_prompt), print_output=True
+                        )
+                        retry_diagnosis = parse_llm_response(retry_content, DiagnosisResult)
+                        if retry_diagnosis.after_code:
+                            diagnosis.after_code = retry_diagnosis.after_code
+                            diagnosis.hint += f" [二次修复: {', '.join(all_warnings)}]"
+                            self.logger.info("静态检查二次修复成功")
+                    except Exception as retry_e:
+                        self.logger.warning(f"静态检查二次修复失败 (non-fatal): {retry_e}")
+
             return diagnosis
 
         except Exception as e:

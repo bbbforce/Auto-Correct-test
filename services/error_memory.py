@@ -12,6 +12,7 @@ CLI 用法:
 
 import argparse
 import datetime
+import difflib
 import hashlib
 import json
 import os
@@ -149,14 +150,21 @@ class ErrorMemory:
         code_after: str = "",
         confidence: float = 0.5,
         tags: list[str] = None,
+        success: bool = True,
     ) -> str:
         """添加一条错误记录。自动去重：若签名相同则合并。
+
+        Args:
+            success: 此修复是否最终成功。False 表示"此路不通"的记录。
 
         Returns:
             条目 ID（新建或已合并的）
         """
         sig = extract_signature(error_message)
         sig_hash = signature_hash(sig)
+
+        # 提取有意义的代码差异片段（优先 diff，回退到截断）
+        snippet_before, snippet_after = _make_snippets(code_before, code_after)
 
         # 自动提取标签，与手动标签合并
         auto = _auto_tags(error_message, code_before)
@@ -171,8 +179,8 @@ class ErrorMemory:
                     entry["confidence"] = confidence
                     entry["root_cause"] = root_cause
                     entry["fix_description"] = fix_description
-                    entry["code_snippet_before"] = _truncate(code_before)
-                    entry["code_snippet_after"] = _truncate(code_after)
+                    entry["code_snippet_before"] = snippet_before
+                    entry["code_snippet_after"] = snippet_after
                 # 合并标签
                 existing_tags = set(entry.get("tags", []))
                 entry["tags"] = sorted(existing_tags | set(all_tags))
@@ -193,8 +201,9 @@ class ErrorMemory:
             "tags": all_tags,
             "occurrences": 1,
             "confidence": confidence,
-            "code_snippet_before": _truncate(code_before),
-            "code_snippet_after": _truncate(code_after),
+            "success": success,
+            "code_snippet_before": snippet_before,
+            "code_snippet_after": snippet_after,
         }
         self._data["entries"].append(new_entry)
         self._save()
@@ -269,7 +278,8 @@ class ErrorMemory:
 
         lines = ["【已知错误经验 — 来自历史修复记录，请务必避免重蹈覆辙】"]
         for i, e in enumerate(entries, 1):
-            lines.append(f"  经验 {i} (出现 {e.get('occurrences', 1)} 次, "
+            status = "✅ 成功修复" if e.get("success", True) else "❌ 修复失败（此路不通）"
+            lines.append(f"  经验 {i} [{status}] (出现 {e.get('occurrences', 1)} 次, "
                          f"置信度 {e.get('confidence', 0):.1%}):")
             lines.append(f"    错误模式: {e.get('error_pattern', 'N/A')}")
             lines.append(f"    根因: {e.get('root_cause', 'N/A')}")
@@ -319,14 +329,85 @@ def _truncate(text: str, max_len: int = 500) -> str:
     """截断代码片段，只保留关键部分。"""
     if not text or len(text) <= max_len:
         return text
-    # 尝试保留出错行附近的代码
     lines = text.strip().split("\n")
     if len(lines) <= 15:
         return text[:max_len] + "\n... (truncated)"
-    # 保留头尾各几行
     head = "\n".join(lines[:7])
     tail = "\n".join(lines[-7:])
     return f"{head}\n... (truncated {len(lines) - 14} lines) ...\n{tail}"
+
+
+def _extract_diff_snippets(
+    before: str, after: str, context_lines: int = 3
+) -> tuple[str, str]:
+    """从两段完整代码中提取差异区域及上下文，返回 (diff_before, diff_after)。
+
+    只保留实际发生变更的行及其前后各 context_lines 行，
+    多个不连续的变更块之间用 '...' 分隔。
+    """
+    before_lines = before.splitlines()
+    after_lines = after.splitlines()
+
+    matcher = difflib.SequenceMatcher(None, before_lines, after_lines)
+    # 收集所有变更行号（在各自序列中的位置）
+    changed_before: set[int] = set()
+    changed_after: set[int] = set()
+
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            continue
+        # replace / delete / insert
+        for i in range(i1, i2):
+            changed_before.add(i)
+        for j in range(j1, j2):
+            changed_after.add(j)
+
+    if not changed_before and not changed_after:
+        return "", ""  # 完全相同，无需记录
+
+    def _collect(lines: list[str], changed: set[int]) -> str:
+        """收集变更行 ± context_lines 的区域，合并重叠区间。"""
+        if not changed:
+            return ""  # 纯插入 / 纯删除，对应侧为空
+        total = len(lines)
+        # 计算需要保留的行号集合
+        keep: set[int] = set()
+        for idx in changed:
+            for c in range(max(0, idx - context_lines),
+                           min(total, idx + context_lines + 1)):
+                keep.add(c)
+        # 按行号排序输出，不连续处插入省略号
+        sorted_keep = sorted(keep)
+        result_lines: list[str] = []
+        prev = -2  # 哨兵
+        for idx in sorted_keep:
+            if idx > prev + 1:
+                if result_lines:  # 非开头
+                    result_lines.append("...")
+            result_lines.append(lines[idx])
+            prev = idx
+        return "\n".join(result_lines)
+
+    return _collect(before_lines, changed_before), _collect(after_lines, changed_after)
+
+
+def _make_snippets(code_before: str, code_after: str) -> tuple[str, str]:
+    """生成适合存储的代码片段对。
+
+    策略：
+    1. 若两段代码都存在且都较长（>15行），用 diff 提取差异区域
+    2. 否则回退到简单截断
+    """
+    if code_before and code_after:
+        before_lines = code_before.strip().splitlines()
+        after_lines = code_after.strip().splitlines()
+        # 只有当两段代码都足够长时才提取 diff（短代码直接存全量）
+        if len(before_lines) > 15 or len(after_lines) > 15:
+            diff_b, diff_a = _extract_diff_snippets(code_before, code_after)
+            if diff_b or diff_a:  # diff 有内容才使用
+                return _truncate(diff_b, 800), _truncate(diff_a, 800)
+    # 回退：简单截断
+    return _truncate(code_before), _truncate(code_after)
 
 
 # ═══════════════════════════════════════════════════════

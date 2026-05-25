@@ -5,6 +5,7 @@
 
 import asyncio
 import os
+import subprocess
 import logging
 from typing import Callable, Optional
 from dotenv import load_dotenv
@@ -28,6 +29,29 @@ STEP_NAMES = {
     4: "执行与校正",
     5: "分析报告",
 }
+
+
+def _probe_fenicsx_env() -> str:
+    """P1-7a: 探测 fenicsx-env 的实际版本和可用库。"""
+    probe_script = (
+        "import dolfinx; print('dolfinx:', dolfinx.__version__); "
+        "import ufl; print('ufl:', ufl.__version__); "
+        "import basix; print('basix:', basix.__version__); "
+        "try:\n import gmsh; print('gmsh: available')\n"
+        "except ImportError: print('gmsh: NOT available')\n"
+        "try:\n import pyvista; print('pyvista: available')\n"
+        "except ImportError: print('pyvista: NOT available')"
+    )
+    try:
+        res = subprocess.run(
+            ["conda", "run", "-n", "fenicsx-env", "python", "-c", probe_script],
+            capture_output=True, text=True, timeout=30,
+        )
+        if res.returncode == 0:
+            return res.stdout.strip()
+    except Exception:
+        pass
+    return ""
 
 
 async def _emit(on_event, event: dict):
@@ -75,6 +99,38 @@ async def _persist_repairs(context, logger, on_event):
             })
     except Exception as e:
         logger.warning(f"Failed to persist repairs to error memory: {e}")
+
+
+async def _persist_failed_repairs(context, logger, on_event):
+    """将失败的修复记录持久化到错误知识库（标记为 success=False）。"""
+    if not context.repair_history:
+        return
+    try:
+        from services.error_memory import ErrorMemory
+        memory = ErrorMemory()
+        count = 0
+        for record in context.repair_history:
+            error_msg = record.get("error_message", "")
+            if not error_msg:
+                continue
+            memory.add_entry(
+                error_message=error_msg,
+                root_cause=record.get("hint", ""),
+                fix_description=record.get("hint", ""),
+                code_before=record.get("code_before", ""),
+                code_after=record.get("code_after", ""),
+                confidence=record.get("confidence", 0.5),
+                success=False,
+            )
+            count += 1
+        if count:
+            logger.info(f"Persisted {count} failed repair records to error memory")
+            await _emit(on_event, {
+                "type": "info", "step": 4,
+                "message": f"已将 {count} 条失败修复记录写入知识库 📚"
+            })
+    except Exception as e:
+        logger.warning(f"Failed to persist failed repairs to error memory: {e}")
 
 
 async def run_pipeline(
@@ -126,6 +182,16 @@ async def run_pipeline(
     error_diagnosis = ErrorDiagnosisAgent(api_key=cfg["ERROR_DIAGNOSIS"][2], model=cfg["ERROR_DIAGNOSIS"][0], base_url=cfg["ERROR_DIAGNOSIS"][1], log_dir=run_dir)
     insight_agent = MechanicalInsightAgent(api_key=cfg["MECHANICAL_INSIGHT"][2], model=cfg["MECHANICAL_INSIGHT"][0], base_url=cfg["MECHANICAL_INSIGHT"][1], log_dir=run_dir)
     result_evaluator = ResultEvaluationAgent(api_key=cfg["RESULT_EVALUATION"][2], model=cfg["RESULT_EVALUATION"][0], base_url=cfg["RESULT_EVALUATION"][1], log_dir=run_dir)
+
+    # ── P1-7a: 探测运行环境 ──
+    env_info = ""
+    try:
+        env_info = _probe_fenicsx_env()
+        if env_info:
+            logger.info(f"FEniCSx environment:\n{env_info}")
+            await _emit(on_event, {"type": "info", "message": f"环境探测完成: {env_info.splitlines()[0]}"})
+    except Exception as e:
+        logger.warning(f"Environment probe failed (non-fatal): {e}")
 
     # ── 解析附件 ──
     attached_images = []
@@ -201,7 +267,7 @@ async def run_pipeline(
     await _emit(on_event, {"type": "step_start", "step": 3, "name": STEP_NAMES[3]})
     token = stream_callback_var.set(_make_stream_cb(on_event, 3))
     try:
-        generated_code = await code_builder.build_code(parsed_data)
+        generated_code = await code_builder.build_code(parsed_data, env_info=env_info)
     finally:
         stream_callback_var.reset(token)
 
@@ -241,6 +307,29 @@ async def run_pipeline(
 
         if exec_result.status in ("error", "timeout"):
             if attempt < max_retries - 1:
+                # ── P1-5c: 先尝试规则自动修复，省去 LLM 调用 ──
+                from services.code_validator import auto_fix_common_errors
+                auto_fixed, fix_descriptions = auto_fix_common_errors(
+                    context.current_code, exec_result.output
+                )
+                if fix_descriptions and auto_fixed != context.current_code:
+                    logger.info(f"规则自动修复应用了 {len(fix_descriptions)} 项: {fix_descriptions}")
+                    await _emit(on_event, {
+                        "type": "info", "step": 4,
+                        "message": f"规则自动修复: {'; '.join(fix_descriptions[:3])} 🔧"
+                    })
+                    code_before_fix = context.current_code
+                    context.current_code = auto_fixed
+                    context.add_repair_record(
+                        f"[规则自动修复] {'; '.join(fix_descriptions)}", 0.8,
+                        error_message=exec_result.output,
+                        code_before=code_before_fix,
+                        code_after=auto_fixed,
+                    )
+                    await _emit(on_event, {"type": "info", "step": 4, "message": "规则修复已应用，重新执行... 🔄"})
+                    continue  # 跳过 LLM 诊断，直接重试执行
+
+                # 规则修复无效，回退到 LLM 诊断
                 await _emit(on_event, {"type": "info", "step": 4, "message": "正在诊断错误..."})
                 token = stream_callback_var.set(_make_stream_cb(on_event, 4))
                 try:
@@ -309,6 +398,10 @@ async def run_pipeline(
     if not context.simulation_success and context.best_code:
         executor.save_code_to_file(context.best_code)
         context.current_code = context.best_code
+
+    # 失败时也持久化修复记录（标记为失败）
+    if not context.simulation_success and context.repair_history:
+        await _persist_failed_repairs(context, logger, on_event)
 
     await _emit(on_event, {"type": "step_complete", "step": 4})
     result.generated_code = context.current_code
