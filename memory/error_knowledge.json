@@ -1,1 +1,122 @@
-{"version": 1, "entries": []}
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "preset001",
+      "created_at": "2026-05-14T00:00:00",
+      "updated_at": "2026-05-14T00:00:00",
+      "error_pattern": "TypeError|missing 1 required keyword-only argument: 'petsc_options_prefix'",
+      "signature_hash": "preset_petsc_pfx",
+      "error_type": "code",
+      "root_cause": "DOLFINx 0.10.0 中 LinearProblem 构造函数要求必须传 petsc_options_prefix（keyword-only，非空字符串）",
+      "fix_description": "添加 petsc_options_prefix='solver_' 参数，例如：LinearProblem(a, L, bcs=[bc], petsc_options_prefix='solver_', petsc_options={...})",
+      "tags": [
+        "LinearProblem",
+        "petsc",
+        "solver"
+      ],
+      "occurrences": 5,
+      "confidence": 0.95,
+      "success": true,
+      "code_snippet_before": "problem = LinearProblem(a, L, bcs=[bc])",
+      "code_snippet_after": "problem = LinearProblem(a, L, bcs=[bc], petsc_options_prefix='solver_', petsc_options={'ksp_type': 'preonly', 'pc_type': 'lu'})"
+    },
+    {
+      "id": "preset002",
+      "created_at": "2026-05-14T00:00:00",
+      "updated_at": "2026-05-14T00:00:00",
+      "error_pattern": "RuntimeError|Degree of output Function must be same as mesh degree",
+      "signature_hash": "preset_xdmf_deg",
+      "error_type": "code",
+      "root_cause": "XDMFFile.write_function() 不支持写入高阶函数（如 P2），要求函数阶数与网格阶数一致（通常为 1）",
+      "fix_description": "使用 VTXWriter 替代 XDMFFile（支持任意阶），或先将高阶函数插值到 P1 空间再写入 XDMF",
+      "tags": [
+        "XDMF",
+        "write_function",
+        "post_processing"
+      ],
+      "occurrences": 3,
+      "confidence": 0.95,
+      "success": true,
+      "code_snippet_before": "xdmf.write_function(uh)  # uh 是 P2 函数",
+      "code_snippet_after": "from dolfinx.io import VTXWriter\nwith VTXWriter(MPI.COMM_WORLD, os.path.join(result_dir, 'output.bp'), [uh]) as vtx:\n    vtx.write(0.0)"
+    },
+    {
+      "id": "preset003",
+      "created_at": "2026-05-14T00:00:00",
+      "updated_at": "2026-05-14T00:00:00",
+      "error_pattern": "AttributeError|module 'dolfinx.io' has no attribute 'gmshio'",
+      "signature_hash": "preset_gmshio",
+      "error_type": "code",
+      "root_cause": "旧 API io.gmshio 已废弃，需改用显式导入",
+      "fix_description": "将 from dolfinx import io; io.gmshio 改为 from dolfinx.io import gmsh as gmshio",
+      "tags": [
+        "gmshio",
+        "import"
+      ],
+      "occurrences": 4,
+      "confidence": 0.99,
+      "success": true,
+      "code_snippet_before": "from dolfinx import io\nmesh_data = io.gmshio.model_to_mesh(...)",
+      "code_snippet_after": "from dolfinx.io import gmsh as gmshio\nmesh_data = gmshio.model_to_mesh(...)"
+    },
+    {
+      "id": "preset004",
+      "created_at": "2026-05-14T00:00:00",
+      "updated_at": "2026-05-14T00:00:00",
+      "error_pattern": "RuntimeError|PETSc options prefix cannot be empty",
+      "signature_hash": "preset_empty_pfx",
+      "error_type": "code",
+      "root_cause": "petsc_options_prefix 不允许为空字符串 ''",
+      "fix_description": "使用非空字符串如 'solver_' 或 'elasticity_' 作为 petsc_options_prefix 的值",
+      "tags": [
+        "LinearProblem",
+        "petsc"
+      ],
+      "occurrences": 2,
+      "confidence": 0.99,
+      "success": true,
+      "code_snippet_before": "problem = LinearProblem(a, L, bcs=[bc], petsc_options_prefix='')",
+      "code_snippet_after": "problem = LinearProblem(a, L, bcs=[bc], petsc_options_prefix='solver_', petsc_options={'ksp_type': 'preonly', 'pc_type': 'lu'})"
+    },
+    {
+      "id": "2bf7503f",
+      "created_at": "2026-05-14T18:22:02.315331",
+      "updated_at": "2026-05-14T18:22:02.315346",
+      "error_pattern": "ValueError|too many values to unpack (expected 3)",
+      "signature_hash": "5e7266f26ca46034",
+      "error_type": "code",
+      "root_cause": "FEniCSx v0.10.0 中 gmshio.read_from_msh 不再返回元组 (domain, cell_tags, facet_tags)，而是返回单一的 MeshData 对象。尝试解包导致 ValueError。",
+      "fix_description": "将返回值赋给单个变量 mesh_data，然后通过 .mesh, .cell_tags, .facet_tags 属性访问内部数据。",
+      "tags": [
+        "gmsh",
+        "import"
+      ],
+      "occurrences": 1,
+      "confidence": 1.0,
+      "success": false,
+      "code_snippet_before": "from dolfinx.io import gmshio\ndomain, cell_tags, facet_tags = gmshio.read_from_msh(\"mesh.msh\", MPI.COMM_WORLD, gdim=3)",
+      "code_snippet_after": "from dolfinx.io import gmshio\nmesh_data = gmshio.read_from_msh(\"mesh.msh\", MPI.COMM_WORLD, gdim=3)\ndomain = mesh_data.mesh\ncell_tags = mesh_data.cell_tags\nfacet_tags = mesh_data.facet_tags"
+    },
+    {
+      "id": "470388f4",
+      "created_at": "2026-05-14T18:22:02.316625",
+      "updated_at": "2026-05-14T18:22:02.316631",
+      "error_pattern": "AttributeError|module 'dolfinx.fem' has no attribute 'petsc'",
+      "signature_hash": "414e34756f86edef",
+      "error_type": "code",
+      "root_cause": "DOLFINx v0.8.0+ 中 petsc 子模块不会自动加载到 dolfinx.fem 的命名空间中，需要显式导入。",
+      "fix_description": "显式导入 LinearProblem：from dolfinx.fem.petsc import LinearProblem，并直接使用 LinearProblem(...) 进行实例化。",
+      "tags": [
+        "LinearProblem",
+        "import",
+        "petsc"
+      ],
+      "occurrences": 1,
+      "confidence": 1.0,
+      "success": false,
+      "code_snippet_before": "problem = fem.petsc.LinearProblem(a, L, bcs=[bc], petsc_options={...})",
+      "code_snippet_after": "from dolfinx.fem.petsc import LinearProblem\nproblem = LinearProblem(a, L, bcs=[bc], petsc_options_prefix='solver_', petsc_options={...})"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "module": "dolfinx.io",
+  "description": "Input/output for meshes and functions: VTK, XDMF, and VTX file formats.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.io.html",
+  "classes": [
+    {
+      "name": "VTKFile",
+      "qualified_name": "dolfinx.io.VTKFile",
+      "description": "Interface to VTK files for writing meshes and functions.",
+      "constructor": {"signature": "VTKFile(comm, filename, mode)", "params": [
+        {"name": "comm", "type": "MPI.Comm"},
+        {"name": "filename", "type": "str | Path"},
+        {"name": "mode", "type": "str", "description": "'w' for write."}
+      ]},
+      "methods": [
+        {"name": "write_mesh", "signature": "write_mesh(mesh, t=0.0)", "description": "Write mesh to file."},
+        {"name": "write_function", "signature": "write_function(u, t=0.0)", "description": "Write function to file."},
+        {"name": "close", "signature": "close()", "description": "Close the file."}
+      ]
+    },
+    {
+      "name": "XDMFFile",
+      "qualified_name": "dolfinx.io.XDMFFile",
+      "description": "Interface for reading/writing XDMF files (with HDF5 backend).",
+      "constructor": {"signature": "XDMFFile(comm, filename, file_mode, encoding=Encoding.HDF5)", "params": [
+        {"name": "comm", "type": "MPI.Comm"},
+        {"name": "filename", "type": "str | Path"},
+        {"name": "file_mode", "type": "str", "description": "'r' read, 'w' write, 'a' append."},
+        {"name": "encoding", "type": "Encoding", "description": "HDF5 or ASCII encoding."}
+      ]},
+      "methods": [
+        {"name": "write_mesh", "signature": "write_mesh(mesh)", "description": "Write mesh to file."},
+        {"name": "write_meshtags", "signature": "write_meshtags(tags, geometry_xpath='/Xdmf/Domain/Grid/Geometry')", "description": "Write MeshTags to file."},
+        {"name": "write_function", "signature": "write_function(u, t=0.0)", "description": "Write function to file."},
+        {"name": "read_mesh", "signature": "read_mesh(name='mesh', xpath='/Xdmf/Domain', gdim=None)", "description": "Read a mesh from file.", "returns": "Mesh"},
+        {"name": "read_meshtags", "signature": "read_meshtags(mesh, name, xpath='/Xdmf/Domain')", "description": "Read MeshTags from file.", "returns": "MeshTags"},
+        {"name": "read_topology_data", "signature": "read_topology_data(name='mesh', xpath='/Xdmf/Domain')", "description": "Read topology data."},
+        {"name": "read_geometry_data", "signature": "read_geometry_data(name='mesh', xpath='/Xdmf/Domain')", "description": "Read geometry data."},
+        {"name": "close", "signature": "close()", "description": "Close the file."}
+      ],
+      "enums": [{"name": "Encoding", "values": ["HDF5", "ASCII"]}]
+    },
+    {
+      "name": "VTXWriter",
+      "qualified_name": "dolfinx.io.VTXWriter",
+      "description": "Interface for writing VTX (ADIOS2) files. Supports Fides and VTX mesh policies.",
+      "constructor": {"signature": "VTXWriter(comm, filename, output, engine='BP5', mesh_policy=VTXMeshPolicy.update)", "params": [
+        {"name": "comm", "type": "MPI.Comm"},
+        {"name": "filename", "type": "str | Path"},
+        {"name": "output", "type": "Function | Mesh | list[Function]"},
+        {"name": "engine", "type": "str"},
+        {"name": "mesh_policy", "type": "VTXMeshPolicy"}
+      ]},
+      "methods": [
+        {"name": "write", "signature": "write(t)", "description": "Write data at time t."},
+        {"name": "close", "signature": "close()", "description": "Close the writer."}
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "distribute_entity_data",
+      "qualified_name": "dolfinx.io.distribute_entity_data",
+      "signature": "distribute_entity_data(mesh, entity_dim, entities, values)",
+      "description": "Distribute entity data from input ranks to the mesh partitioning."
+    }
+  ],
+  "enums": [
+    {
+      "name": "VTXMeshPolicy",
+      "qualified_name": "dolfinx.io.VTXMeshPolicy",
+      "description": "Policy for VTX mesh output.",
+      "values": ["update", "reuse"]
+    }
+  ]
+}

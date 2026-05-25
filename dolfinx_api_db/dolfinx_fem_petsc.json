@@ -1,0 +1,141 @@
+{
+  "module": "dolfinx.fem.petsc",
+  "description": "PETSc-based finite element assembly and solver utilities. Requires petsc4py. Objects must be manually destroyed with .destroy().",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.fem.petsc.html",
+  "important_notes": [
+    "PETSc objects (Mat, Vec, KSP, SNES) must be manually destroyed by calling .destroy() to avoid memory leaks.",
+    "This module wraps petsc4py for seamless integration with DOLFINx."
+  ],
+  "classes": [
+    {
+      "name": "LinearProblem",
+      "qualified_name": "dolfinx.fem.petsc.LinearProblem",
+      "description": "Solve a linear variational problem a(u,v) = L(v).",
+      "constructor": {
+        "signature": "LinearProblem(a, L, bcs=None, u=None, petsc_options=None, form_compiler_options=None, jit_options=None)",
+        "params": [
+          {"name": "a", "type": "ufl.Form", "description": "Bilinear form."},
+          {"name": "L", "type": "ufl.Form", "description": "Linear form."},
+          {"name": "bcs", "type": "list[DirichletBC] | None", "description": "Dirichlet BCs."},
+          {"name": "u", "type": "Function | None", "description": "Solution function."},
+          {"name": "petsc_options", "type": "dict | None", "description": "PETSc solver options."}
+        ]
+      },
+      "methods": [
+        {"name": "solve", "signature": "solve()", "description": "Solve the linear problem. Returns the solution Function.", "returns": "Function"}
+      ],
+      "properties": [
+        {"name": "A", "type": "PETSc.Mat", "description": "Assembled LHS matrix."},
+        {"name": "b", "type": "PETSc.Vec", "description": "Assembled RHS vector."},
+        {"name": "solver", "type": "PETSc.KSP", "description": "PETSc KSP solver."}
+      ]
+    },
+    {
+      "name": "NonlinearProblem",
+      "qualified_name": "dolfinx.fem.petsc.NonlinearProblem",
+      "description": "Nonlinear problem for use with PETSc SNES.",
+      "constructor": {
+        "signature": "NonlinearProblem(F, u, bcs=None, J=None, form_compiler_options=None, jit_options=None)",
+        "params": [
+          {"name": "F", "type": "ufl.Form", "description": "Residual form."},
+          {"name": "u", "type": "Function", "description": "Solution function."},
+          {"name": "bcs", "type": "list[DirichletBC] | None"},
+          {"name": "J", "type": "ufl.Form | None", "description": "Jacobian form. If None, computed automatically."}
+        ]
+      },
+      "properties": [
+        {"name": "F", "description": "Compiled residual form."},
+        {"name": "J", "description": "Compiled Jacobian form."},
+        {"name": "bcs", "description": "Boundary conditions."}
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "assemble_matrix",
+      "qualified_name": "dolfinx.fem.petsc.assemble_matrix",
+      "signature": "assemble_matrix(a, bcs=None, diagonal=1.0, constants=None, coeffs=None)",
+      "description": "Assemble bilinear form into a PETSc Mat.",
+      "returns": "PETSc.Mat"
+    },
+    {
+      "name": "assemble_matrix_block",
+      "qualified_name": "dolfinx.fem.petsc.assemble_matrix_block",
+      "signature": "assemble_matrix_block(a, bcs=None, diagonal=1.0, constants=None, coeffs=None)",
+      "description": "Assemble block bilinear forms into a monolithic PETSc Mat."
+    },
+    {
+      "name": "assemble_matrix_nest",
+      "qualified_name": "dolfinx.fem.petsc.assemble_matrix_nest",
+      "signature": "assemble_matrix_nest(a, bcs=None, mat_types=None, diagonal=1.0, constants=None, coeffs=None)",
+      "description": "Assemble bilinear forms into a PETSc nested Mat."
+    },
+    {
+      "name": "assemble_vector",
+      "qualified_name": "dolfinx.fem.petsc.assemble_vector",
+      "signature": "assemble_vector(L, constants=None, coeffs=None)",
+      "description": "Assemble linear form into a PETSc Vec.",
+      "returns": "PETSc.Vec"
+    },
+    {
+      "name": "assemble_vector_block",
+      "qualified_name": "dolfinx.fem.petsc.assemble_vector_block",
+      "signature": "assemble_vector_block(L, a, bcs=None, x0=None, scale=1.0, constants_L=None, coeffs_L=None, constants_a=None, coeffs_a=None)",
+      "description": "Assemble linear forms into a monolithic PETSc Vec with block structure."
+    },
+    {
+      "name": "assemble_vector_nest",
+      "qualified_name": "dolfinx.fem.petsc.assemble_vector_nest",
+      "signature": "assemble_vector_nest(L, constants=None, coeffs=None)",
+      "description": "Assemble linear forms into a PETSc nested Vec."
+    },
+    {
+      "name": "create_matrix",
+      "qualified_name": "dolfinx.fem.petsc.create_matrix",
+      "signature": "create_matrix(a, mat_type=None)",
+      "description": "Create a PETSc Mat from a bilinear form."
+    },
+    {
+      "name": "create_matrix_block",
+      "qualified_name": "dolfinx.fem.petsc.create_matrix_block",
+      "signature": "create_matrix_block(a)",
+      "description": "Create a monolithic PETSc Mat for blocked forms."
+    },
+    {
+      "name": "create_matrix_nest",
+      "qualified_name": "dolfinx.fem.petsc.create_matrix_nest",
+      "signature": "create_matrix_nest(a, mat_types=None)",
+      "description": "Create a nested PETSc Mat."
+    },
+    {
+      "name": "create_vector",
+      "qualified_name": "dolfinx.fem.petsc.create_vector",
+      "signature": "create_vector(L)",
+      "description": "Create a PETSc Vec from a linear form."
+    },
+    {
+      "name": "create_vector_block",
+      "qualified_name": "dolfinx.fem.petsc.create_vector_block",
+      "signature": "create_vector_block(L)",
+      "description": "Create a monolithic PETSc Vec for blocked forms."
+    },
+    {
+      "name": "create_vector_nest",
+      "qualified_name": "dolfinx.fem.petsc.create_vector_nest",
+      "signature": "create_vector_nest(L)",
+      "description": "Create a nested PETSc Vec."
+    },
+    {
+      "name": "apply_lifting",
+      "qualified_name": "dolfinx.fem.petsc.apply_lifting",
+      "signature": "apply_lifting(b, a, bcs, x0=None, scale=1.0, constants=None, coeffs=None)",
+      "description": "Apply lifting to a PETSc Vec for enforcement of BCs."
+    },
+    {
+      "name": "set_bc",
+      "qualified_name": "dolfinx.fem.petsc.set_bc",
+      "signature": "set_bc(b, bcs, x0=None, scale=1.0)",
+      "description": "Apply Dirichlet BCs to a PETSc Vec."
+    }
+  ]
+}

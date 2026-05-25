@@ -1,0 +1,233 @@
+{
+  "module": "dolfinx.fem",
+  "description": "Core finite element method tools: function spaces, functions, forms, boundary conditions, expressions, and assembly.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.fem.html",
+  "classes": [
+    {
+      "name": "FunctionSpace",
+      "qualified_name": "dolfinx.fem.FunctionSpace",
+      "description": "A finite element function space. Wraps a C++ FunctionSpace. Use dolfinx.fem.functionspace() to create.",
+      "properties": [
+        {"name": "dofmap", "type": "DofMap", "description": "Degree-of-freedom map for the function space."},
+        {"name": "element", "type": "FiniteElement", "description": "Finite element of the function space."},
+        {"name": "mesh", "type": "Mesh", "description": "Mesh on which the function space is defined."},
+        {"name": "ufl_function_space", "type": "ufl.FunctionSpace", "description": "UFL function space."},
+        {"name": "value_shape", "type": "tuple", "description": "Value shape of the finite element field."}
+      ],
+      "methods": [
+        {"name": "clone", "signature": "clone()", "description": "Create a copy of the function space with a new dofmap."},
+        {"name": "collapse", "signature": "collapse()", "description": "Collapse a subspace and return the collapsed space and map from new to old dofs."},
+        {"name": "component", "signature": "component()", "description": "Component index relative to the parent space."},
+        {"name": "contains", "signature": "contains(V)", "description": "Check if a function space is a subspace of this space."},
+        {"name": "sub", "signature": "sub(i)", "description": "Return a subspace at component i.", "params": [{"name": "i", "type": "int"}]},
+        {"name": "tabulate_dof_coordinates", "signature": "tabulate_dof_coordinates()", "description": "Tabulate the coordinates of DOFs."}
+      ]
+    },
+    {
+      "name": "Function",
+      "qualified_name": "dolfinx.fem.Function",
+      "description": "A finite element function. Can be created from a FunctionSpace.",
+      "constructor": {"signature": "Function(V, x=None, dtype=None)", "params": [
+        {"name": "V", "type": "FunctionSpace", "description": "Function space to create the function on."},
+        {"name": "x", "type": "Vector | None", "description": "Optional vector of DOF values."},
+        {"name": "dtype", "type": "dtype | None", "description": "Data type of the function."}
+      ]},
+      "properties": [
+        {"name": "x", "type": "Vector", "description": "Vector of DOF values (dolfinx.la.Vector)."},
+        {"name": "function_space", "type": "FunctionSpace", "description": "Function space of the function."},
+        {"name": "dtype", "type": "dtype", "description": "Data type of function values."},
+        {"name": "name", "type": "str", "description": "Name of the function."}
+      ],
+      "methods": [
+        {"name": "interpolate", "signature": "interpolate(u, cells=None, nmm_interpolation_data=None)", "description": "Interpolate an expression or another function."},
+        {"name": "eval", "signature": "eval(x, cells)", "description": "Evaluate function at given points in given cells."},
+        {"name": "copy", "signature": "copy()", "description": "Return a copy of the function."},
+        {"name": "collapse", "signature": "collapse()", "description": "Collapse a function in a subspace."},
+        {"name": "sub", "signature": "sub(i)", "description": "Return a view into a sub-function."},
+        {"name": "split", "signature": "split()", "description": "Extract sub-functions (views)."}
+      ]
+    },
+    {
+      "name": "Constant",
+      "qualified_name": "dolfinx.fem.Constant",
+      "description": "A constant value over a domain.",
+      "constructor": {"signature": "Constant(domain, c)", "params": [
+        {"name": "domain", "type": "Mesh", "description": "Mesh on which the constant is defined."},
+        {"name": "c", "type": "scalar | array", "description": "Constant value (scalar, vector, or tensor)."}
+      ]},
+      "properties": [
+        {"name": "value", "type": "ndarray", "description": "The constant value array."},
+        {"name": "dtype", "type": "dtype", "description": "Data type."}
+      ]
+    },
+    {
+      "name": "Expression",
+      "qualified_name": "dolfinx.fem.Expression",
+      "description": "Represents a UFL expression evaluated at specific points.",
+      "constructor": {"signature": "Expression(e, X, comm=None, dtype=None)", "params": [
+        {"name": "e", "type": "ufl.Expr", "description": "UFL expression."},
+        {"name": "X", "type": "ndarray", "description": "Points on the reference element to evaluate at."},
+        {"name": "comm", "type": "MPI.Comm | None", "description": "MPI communicator for JIT."},
+        {"name": "dtype", "type": "dtype | None", "description": "Scalar type."}
+      ]},
+      "methods": [
+        {"name": "eval", "signature": "eval(mesh, cells)", "description": "Evaluate the expression on cells."}
+      ]
+    },
+    {
+      "name": "Form",
+      "qualified_name": "dolfinx.fem.Form",
+      "description": "A compiled variational form. Wraps C++ dolfinx::fem::Form.",
+      "properties": [
+        {"name": "dtype", "type": "dtype"},
+        {"name": "function_spaces", "type": "list[FunctionSpace]"},
+        {"name": "rank", "type": "int", "description": "Rank of the form (0=scalar, 1=linear, 2=bilinear)."}
+      ]
+    },
+    {
+      "name": "DirichletBC",
+      "qualified_name": "dolfinx.fem.DirichletBC",
+      "description": "Representation of a Dirichlet boundary condition. Use dirichletbc() to create.",
+      "properties": [
+        {"name": "dtype", "type": "dtype"},
+        {"name": "function_space", "type": "FunctionSpace"},
+        {"name": "g", "description": "The boundary condition value."}
+      ]
+    },
+    {
+      "name": "DofMap",
+      "qualified_name": "dolfinx.fem.DofMap",
+      "description": "Degree-of-freedom map.",
+      "properties": [
+        {"name": "bs", "type": "int", "description": "Block size."},
+        {"name": "index_map", "type": "IndexMap"},
+        {"name": "index_map_bs", "type": "int"}
+      ],
+      "methods": [
+        {"name": "cell_dofs", "signature": "cell_dofs(cell)", "description": "Return DOFs for a cell."},
+        {"name": "list", "description": "Adjacency list of DOFs for all cells."}
+      ]
+    },
+    {
+      "name": "CoordinateElement",
+      "qualified_name": "dolfinx.fem.CoordinateElement",
+      "description": "Coordinate element for mesh geometry representation.",
+      "constructor": {"signature": "CoordinateElement(celltype, degree, variant=None, dtype=None)"}
+    }
+  ],
+  "functions": [
+    {
+      "name": "functionspace",
+      "qualified_name": "dolfinx.fem.functionspace",
+      "signature": "functionspace(mesh, element, form_compiler_options=None, jit_options=None)",
+      "description": "Create a FunctionSpace. Recommended factory function.",
+      "params": [
+        {"name": "mesh", "type": "Mesh"},
+        {"name": "element", "type": "ElementMetaData | tuple | basix.ufl.element", "description": "Finite element specification. Can be a tuple like ('Lagrange', degree)."},
+        {"name": "form_compiler_options", "type": "dict | None"},
+        {"name": "jit_options", "type": "dict | None"}
+      ],
+      "returns": "FunctionSpace"
+    },
+    {
+      "name": "dirichletbc",
+      "qualified_name": "dolfinx.fem.dirichletbc",
+      "signature": "dirichletbc(value, dofs, V=None)",
+      "description": "Create a Dirichlet boundary condition.",
+      "params": [
+        {"name": "value", "type": "Function | Constant | ndarray", "description": "BC value."},
+        {"name": "dofs", "type": "ndarray", "description": "DOF indices where BC is applied."},
+        {"name": "V", "type": "FunctionSpace | None", "description": "Function space (needed when value is not a Function in the same space)."}
+      ],
+      "returns": "DirichletBC"
+    },
+    {
+      "name": "form",
+      "qualified_name": "dolfinx.fem.form",
+      "signature": "form(form, dtype=None, form_compiler_options=None, jit_options=None)",
+      "description": "Create a compiled Form from a UFL form.",
+      "params": [
+        {"name": "form", "type": "ufl.Form | list"},
+        {"name": "dtype", "type": "dtype | None"},
+        {"name": "form_compiler_options", "type": "dict | None"},
+        {"name": "jit_options", "type": "dict | None"}
+      ],
+      "returns": "Form | list[Form]"
+    },
+    {
+      "name": "assemble_scalar",
+      "qualified_name": "dolfinx.fem.assemble_scalar",
+      "signature": "assemble_scalar(M)",
+      "description": "Assemble a rank-0 form (scalar) on the calling process.",
+      "params": [{"name": "M", "type": "Form"}],
+      "returns": "scalar"
+    },
+    {
+      "name": "assemble_vector",
+      "qualified_name": "dolfinx.fem.assemble_vector",
+      "signature": "assemble_vector(L)",
+      "description": "Assemble a rank-1 form into a Vector.",
+      "params": [{"name": "L", "type": "Form"}],
+      "returns": "Vector"
+    },
+    {
+      "name": "assemble_matrix",
+      "qualified_name": "dolfinx.fem.assemble_matrix",
+      "signature": "assemble_matrix(a, bcs=None, diagonal=1.0, constants=None, coeffs=None)",
+      "description": "Assemble a rank-2 form into a MatrixCSR.",
+      "params": [
+        {"name": "a", "type": "Form"},
+        {"name": "bcs", "type": "list[DirichletBC] | None"},
+        {"name": "diagonal", "type": "float"}
+      ],
+      "returns": "MatrixCSR"
+    },
+    {
+      "name": "locate_dofs_topological",
+      "qualified_name": "dolfinx.fem.locate_dofs_topological",
+      "signature": "locate_dofs_topological(V, entity_dim, entities)",
+      "description": "Locate DOFs on mesh entities of a given topological dimension.",
+      "params": [
+        {"name": "V", "type": "FunctionSpace | tuple[FunctionSpace]"},
+        {"name": "entity_dim", "type": "int"},
+        {"name": "entities", "type": "ndarray"}
+      ],
+      "returns": "ndarray"
+    },
+    {
+      "name": "locate_dofs_geometrical",
+      "qualified_name": "dolfinx.fem.locate_dofs_geometrical",
+      "signature": "locate_dofs_geometrical(V, marker)",
+      "description": "Locate DOFs using a geometric marker function.",
+      "params": [
+        {"name": "V", "type": "FunctionSpace | tuple[FunctionSpace]"},
+        {"name": "marker", "type": "callable", "description": "Function returning True for DOF coordinates on the boundary."}
+      ],
+      "returns": "ndarray"
+    },
+    {
+      "name": "set_bc",
+      "qualified_name": "dolfinx.fem.set_bc",
+      "signature": "set_bc(b, bcs, x0=None, scale=1.0)",
+      "description": "Apply Dirichlet boundary conditions to a vector."
+    },
+    {
+      "name": "create_sparsity_pattern",
+      "qualified_name": "dolfinx.fem.create_sparsity_pattern",
+      "signature": "create_sparsity_pattern(a)",
+      "description": "Create a sparsity pattern from a bilinear form."
+    },
+    {
+      "name": "coordinate_element",
+      "qualified_name": "dolfinx.fem.coordinate_element",
+      "signature": "coordinate_element(celltype, degree, variant=None, dtype=None)",
+      "description": "Create a coordinate element."
+    },
+    {
+      "name": "create_interpolation_data",
+      "qualified_name": "dolfinx.fem.create_interpolation_data",
+      "signature": "create_interpolation_data(V_to, V_from, cells=None, padding=1e-14)",
+      "description": "Create data needed for non-matching mesh interpolation."
+    }
+  ]
+}

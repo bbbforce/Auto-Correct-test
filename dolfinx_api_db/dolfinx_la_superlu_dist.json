@@ -1,0 +1,40 @@
+{
+  "module": "dolfinx.la.superlu_dist",
+  "description": "SuperLU_DIST parallel direct linear solver support for MatrixCSR systems.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.la.superlu_dist.html",
+  "notes": ["For advanced solver requirements, prefer PETSc/petsc4py."],
+  "classes": [
+    {
+      "name": "SuperLUDistMatrix",
+      "qualified_name": "dolfinx.la.superlu_dist.SuperLUDistMatrix",
+      "description": "SuperLU_DIST matrix. Create via superlu_dist_matrix().",
+      "properties": [{"name": "dtype", "type": "dtype"}]
+    },
+    {
+      "name": "SuperLUDistSolver",
+      "qualified_name": "dolfinx.la.superlu_dist.SuperLUDistSolver",
+      "description": "SuperLU_DIST solver. Create via superlu_dist_solver().",
+      "methods": [
+        {"name": "solve", "signature": "solve(b, u)", "description": "Solve Au = b. Returns SuperLU_DIST return integer (0 = success). Caller must u.scatter_forward() after."},
+        {"name": "set_A", "signature": "set_A(A)", "description": "Set assembled LHS matrix for reuse with 'Factor' option."},
+        {"name": "set_option", "signature": "set_option(name, value)", "description": "Set SuperLU_DIST option (e.g., 'SymmetricMode', 'YES')."}
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "superlu_dist_matrix",
+      "qualified_name": "dolfinx.la.superlu_dist.superlu_dist_matrix",
+      "signature": "superlu_dist_matrix(A)",
+      "description": "Create a SuperLU_DIST matrix (deep copy from MatrixCSR A).",
+      "returns": "SuperLUDistMatrix"
+    },
+    {
+      "name": "superlu_dist_solver",
+      "qualified_name": "dolfinx.la.superlu_dist.superlu_dist_solver",
+      "signature": "superlu_dist_solver(A)",
+      "description": "Create a SuperLU_DIST solver via LU decomposition.",
+      "returns": "SuperLUDistSolver"
+    }
+  ]
+}

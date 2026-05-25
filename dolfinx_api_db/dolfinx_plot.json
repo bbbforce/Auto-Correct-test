@@ -1,0 +1,21 @@
+{
+  "module": "dolfinx.plot",
+  "description": "Support for plotting and VTK-ready mesh data extraction.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.plot.html",
+  "functions": [
+    {
+      "name": "vtk_mesh",
+      "qualified_name": "dolfinx.plot.vtk_mesh",
+      "signature": "vtk_mesh(msh_or_V, dim=None, entities=None)",
+      "description": "Create VTK-ready mesh topology data for PyVista visualization. Accepts a Mesh or FunctionSpace.",
+      "params": [
+        {"name": "msh_or_V", "type": "Mesh | FunctionSpace", "description": "Mesh or function space to extract VTK data from."},
+        {"name": "dim", "type": "int | None", "description": "Topological dimension of entities to extract (default: mesh dim)."},
+        {"name": "entities", "type": "ndarray | None", "description": "Specific entities to include."}
+      ],
+      "returns": "tuple[ndarray, ndarray, ndarray]",
+      "returns_description": "(topology, cell_types, geometry) for use with pyvista.UnstructuredGrid.",
+      "usage_example": "import pyvista; topology, cell_types, geometry = dolfinx.plot.vtk_mesh(mesh); grid = pyvista.UnstructuredGrid(topology, cell_types, geometry)"
+    }
+  ]
+}

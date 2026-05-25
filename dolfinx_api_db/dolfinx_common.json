@@ -1,0 +1,47 @@
+{
+  "module": "dolfinx.common",
+  "description": "General utility functions and classes for timing, performance logging, and common operations.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.common.html",
+  "classes": [
+    {
+      "name": "Timer",
+      "qualified_name": "dolfinx.common.Timer",
+      "description": "A timer for measuring and logging elapsed time for tasks.",
+      "constructor": {"signature": "Timer(name=None)", "params": [{"name": "name", "type": "str | None", "description": "Name of the timer. Used as an identifier when logging."}]},
+      "methods": [
+        {"name": "start", "signature": "start()", "description": "Start the timer."},
+        {"name": "stop", "signature": "stop()", "description": "Stop the timer and return elapsed wall time.", "returns": "float"},
+        {"name": "resume", "signature": "resume()", "description": "Resume the timer."},
+        {"name": "elapsed", "signature": "elapsed()", "description": "Return elapsed wall time in seconds.", "returns": "list[float]"}
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "list_timings",
+      "qualified_name": "dolfinx.common.list_timings",
+      "signature": "list_timings(comm, reduction)",
+      "description": "Print a summary of timings collected using Timer.",
+      "params": [
+        {"name": "comm", "type": "MPI.Comm", "description": "MPI communicator."},
+        {"name": "reduction", "type": "Reduction", "description": "Reduction type to apply over ranks (min, max, average)."}
+      ]
+    },
+    {
+      "name": "timing",
+      "qualified_name": "dolfinx.common.timing",
+      "signature": "timing(task)",
+      "description": "Return timing data for a named task.",
+      "params": [{"name": "task", "type": "str", "description": "Name of the task."}],
+      "returns": "tuple[int, float, float, float]"
+    }
+  ],
+  "enums": [
+    {
+      "name": "Reduction",
+      "qualified_name": "dolfinx.common.Reduction",
+      "description": "Reduction type for timing operations.",
+      "values": ["average", "max", "min"]
+    }
+  ]
+}

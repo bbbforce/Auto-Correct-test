@@ -1,0 +1,34 @@
+{
+  "module": "dolfinx.jit",
+  "description": "Just-in-time (JIT) compilation using FFCx and CFFI.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.jit.html",
+  "functions": [
+    {
+      "name": "ffcx_jit",
+      "qualified_name": "dolfinx.jit.ffcx_jit",
+      "signature": "ffcx_jit(ufl_object, form_compiler_options=None, jit_options=None)",
+      "description": "Compile UFL object with FFCx and CFFI. Returns a three-tuple (compiled_object, module, (header, implementation)).",
+      "params": [
+        {"name": "ufl_object", "type": "ufl.Form | ufl.FiniteElement | ...", "description": "Object to compile."},
+        {"name": "form_compiler_options", "type": "dict | None", "description": "FFCx compilation options."},
+        {"name": "jit_options", "type": "dict | None", "description": "CFFI JIT compilation options."}
+      ],
+      "notes": [
+        "Option priority (high to low): jit_options API > $PWD/dolfinx_jit_options.json > $XDG_CONFIG_HOME/dolfinx/dolfinx_jit_options.json > DOLFINX_DEFAULT_JIT_OPTIONS"
+      ]
+    },
+    {
+      "name": "get_options",
+      "qualified_name": "dolfinx.jit.get_options",
+      "signature": "get_options(priority_options=None)",
+      "description": "Return a copy of the merged JIT option values for DOLFINx.",
+      "returns": "dict"
+    },
+    {
+      "name": "mpi_jit_decorator",
+      "qualified_name": "dolfinx.jit.mpi_jit_decorator",
+      "signature": "mpi_jit_decorator(local_jit, *args, **kwargs)",
+      "description": "Decorator for JIT compilation in parallel. First process compiles, others use cache."
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "module": "dolfinx.io.gmsh",
+  "description": "Tools to extract data from Gmsh models and create DOLFINx meshes.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.io.gmsh.html",
+  "classes": [
+    {
+      "name": "MeshData",
+      "qualified_name": "dolfinx.io.gmsh.MeshData",
+      "description": "NamedTuple: (mesh, cell_tags, facet_tags, ridge_tags, peak_tags, physical_groups).",
+      "fields": [
+        {"name": "mesh", "type": "Mesh"},
+        {"name": "cell_tags", "type": "MeshTags"},
+        {"name": "facet_tags", "type": "MeshTags", "description": "Codim 1."},
+        {"name": "ridge_tags", "type": "MeshTags", "description": "Codim 2."},
+        {"name": "peak_tags", "type": "MeshTags", "description": "Codim 3."},
+        {"name": "physical_groups", "type": "dict[str, PhysicalGroup]"}
+      ]
+    },
+    {
+      "name": "PhysicalGroup",
+      "qualified_name": "dolfinx.io.gmsh.PhysicalGroup",
+      "description": "NamedTuple: (dim, tag) for physical group info.",
+      "fields": [
+        {"name": "dim", "type": "int"},
+        {"name": "tag", "type": "int"}
+      ]
+    },
+    {
+      "name": "TopologyDict",
+      "qualified_name": "dolfinx.io.gmsh.TopologyDict",
+      "description": "TypedDict for storing topology of marked cells: topology, cell_data, entity_tags."
+    }
+  ],
+  "functions": [
+    {
+      "name": "model_to_mesh",
+      "qualified_name": "dolfinx.io.gmsh.model_to_mesh",
+      "signature": "model_to_mesh(model, comm, rank, gdim, partitioner=None, dtype=None, max_facet_to_cell_links=1)",
+      "description": "Create a Mesh from a Gmsh model. Returns MeshData with mesh, tags by codimension, and physical groups.",
+      "returns": "MeshData",
+      "notes": ["For performance, call only once for large problems. Save with XDMFFile for reuse."]
+    },
+    {
+      "name": "read_from_msh",
+      "qualified_name": "dolfinx.io.gmsh.read_from_msh",
+      "signature": "read_from_msh(filename, comm, rank=0, gdim=None, partitioner=None)",
+      "description": "Read a Gmsh .msh file and return MeshData. Requires Gmsh Python module.",
+      "returns": "MeshData"
+    },
+    {
+      "name": "cell_perm_array",
+      "qualified_name": "dolfinx.io.gmsh.cell_perm_array",
+      "signature": "cell_perm_array(cell_type, num_nodes)",
+      "description": "Array for permuting Gmsh ordering to DOLFINx ordering."
+    },
+    {
+      "name": "extract_geometry",
+      "qualified_name": "dolfinx.io.gmsh.extract_geometry",
+      "signature": "extract_geometry(model, name=None)",
+      "description": "Extract mesh geometry from Gmsh model. Returns array of shape (num_nodes, 3)."
+    },
+    {
+      "name": "extract_topology_and_markers",
+      "qualified_name": "dolfinx.io.gmsh.extract_topology_and_markers",
+      "signature": "extract_topology_and_markers(model, name=None)",
+      "description": "Extract entities with physical markers from Gmsh model."
+    },
+    {
+      "name": "ufl_mesh",
+      "qualified_name": "dolfinx.io.gmsh.ufl_mesh",
+      "signature": "ufl_mesh(gmsh_cell, gdim, dtype)",
+      "description": "Create UFL mesh from Gmsh cell identifier and geometric dimension."
+    }
+  ]
+}

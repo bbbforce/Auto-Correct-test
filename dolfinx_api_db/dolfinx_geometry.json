@@ -1,0 +1,89 @@
+{
+  "module": "dolfinx.geometry",
+  "description": "Geometric search and collision detection tools: bounding box trees, point ownership, and GJK distance computation.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.geometry.html",
+  "classes": [
+    {
+      "name": "BoundingBoxTree",
+      "qualified_name": "dolfinx.geometry.BoundingBoxTree",
+      "description": "Axis-Aligned Bounding Box (AABB) tree for efficient geometric search. Create using bb_tree().",
+      "properties": [
+        {"name": "num_bboxes", "type": "int", "description": "Number of bounding boxes in the tree."}
+      ],
+      "methods": [
+        {"name": "get_bbox", "signature": "get_bbox(i)", "description": "Return bounding box i as pair of corner points."},
+        {"name": "create_global_tree", "signature": "create_global_tree(comm)", "description": "Create a global bounding box tree (one box per process)."}
+      ]
+    },
+    {
+      "name": "PointOwnershipData",
+      "qualified_name": "dolfinx.geometry.PointOwnershipData",
+      "description": "Data structure for determining point ownership across processes.",
+      "properties": [
+        {"name": "src_owner", "type": "ndarray"},
+        {"name": "dest_owner", "type": "ndarray"},
+        {"name": "dest_points", "type": "ndarray"},
+        {"name": "dest_cells", "type": "ndarray"}
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "bb_tree",
+      "qualified_name": "dolfinx.geometry.bb_tree",
+      "signature": "bb_tree(mesh, dim, entities=None, padding=0.0)",
+      "description": "Create a bounding box tree for mesh entities of a given dimension.",
+      "params": [
+        {"name": "mesh", "type": "Mesh"},
+        {"name": "dim", "type": "int", "description": "Topological dimension of entities."},
+        {"name": "entities", "type": "ndarray | None"},
+        {"name": "padding", "type": "float"}
+      ],
+      "returns": "BoundingBoxTree"
+    },
+    {
+      "name": "compute_collisions_points",
+      "qualified_name": "dolfinx.geometry.compute_collisions_points",
+      "signature": "compute_collisions_points(tree, x)",
+      "description": "Compute collisions between a bounding box tree and points.",
+      "returns": "AdjacencyList"
+    },
+    {
+      "name": "compute_collisions_trees",
+      "qualified_name": "dolfinx.geometry.compute_collisions_trees",
+      "signature": "compute_collisions_trees(tree0, tree1)",
+      "description": "Compute collisions between two bounding box trees."
+    },
+    {
+      "name": "compute_closest_entity",
+      "qualified_name": "dolfinx.geometry.compute_closest_entity",
+      "signature": "compute_closest_entity(tree, midpoint_tree, mesh, x)",
+      "description": "Compute the closest mesh entity to a point."
+    },
+    {
+      "name": "compute_distance_gjk",
+      "qualified_name": "dolfinx.geometry.compute_distance_gjk",
+      "signature": "compute_distance_gjk(p, q)",
+      "description": "Compute distance between convex bodies p and q using GJK algorithm."
+    },
+    {
+      "name": "squared_distance",
+      "qualified_name": "dolfinx.geometry.squared_distance",
+      "signature": "squared_distance(mesh, dim, entities, points)",
+      "description": "Compute squared distances from points to mesh entities."
+    },
+    {
+      "name": "determine_point_ownership",
+      "qualified_name": "dolfinx.geometry.determine_point_ownership",
+      "signature": "determine_point_ownership(mesh, points, padding=1e-6)",
+      "description": "Determine which process owns given points.",
+      "returns": "PointOwnershipData"
+    },
+    {
+      "name": "create_midpoint_tree",
+      "qualified_name": "dolfinx.geometry.create_midpoint_tree",
+      "signature": "create_midpoint_tree(mesh, dim, entities)",
+      "description": "Create a bounding box tree for entity midpoints."
+    }
+  ]
+}

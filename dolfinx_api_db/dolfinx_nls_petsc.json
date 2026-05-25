@@ -1,0 +1,31 @@
+{
+  "module": "dolfinx.nls.petsc",
+  "description": "PETSc-based nonlinear solvers (Newton method via SNES).",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.nls.petsc.html",
+  "classes": [
+    {
+      "name": "NewtonSolver",
+      "qualified_name": "dolfinx.nls.petsc.NewtonSolver",
+      "description": "Newton solver using PETSc SNES. DEPRECATED: Use dolfinx.fem.petsc.NonlinearProblem with PETSc SNES directly.",
+      "deprecated": true,
+      "constructor": {"signature": "NewtonSolver(comm, problem)", "params": [
+        {"name": "comm", "type": "MPI.Comm"},
+        {"name": "problem", "type": "NonlinearProblem"}
+      ]},
+      "properties": [
+        {"name": "atol", "type": "float", "description": "Absolute tolerance."},
+        {"name": "rtol", "type": "float", "description": "Relative tolerance."},
+        {"name": "max_it", "type": "int", "description": "Maximum iterations."},
+        {"name": "convergence_criterion", "type": "str", "description": "'incremental' or 'residual'."},
+        {"name": "error_on_nonconvergence", "type": "bool"},
+        {"name": "relaxation_parameter", "type": "float"},
+        {"name": "report", "type": "bool"}
+      ],
+      "methods": [
+        {"name": "solve", "signature": "solve(u)", "description": "Solve the nonlinear problem. Returns (num_iterations, converged).", "returns": "tuple[int, bool]"},
+        {"name": "setF", "signature": "setF(F, b)", "description": "Set the residual function."},
+        {"name": "setJ", "signature": "setJ(J, A)", "description": "Set the Jacobian function."}
+      ]
+    }
+  ]
+}

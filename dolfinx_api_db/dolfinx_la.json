@@ -1,0 +1,96 @@
+{
+  "module": "dolfinx.la",
+  "description": "Linear algebra objects and operations: vectors, sparse matrices (CSR), norms, and insert modes.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.la.html",
+  "classes": [
+    {
+      "name": "Vector",
+      "qualified_name": "dolfinx.la.Vector",
+      "description": "A distributed vector. Create using dolfinx.la.vector().",
+      "properties": [
+        {"name": "array", "type": "ndarray", "description": "Local part of the vector (excluding ghosts)."},
+        {"name": "dtype", "type": "dtype"},
+        {"name": "index_map", "type": "IndexMap"},
+        {"name": "bs", "type": "int", "description": "Block size."},
+        {"name": "petsc_vec", "type": "PETSc.Vec | None", "description": "PETSc vector (if available)."}
+      ],
+      "methods": [
+        {"name": "scatter_forward", "signature": "scatter_forward()", "description": "Scatter local values to ghost positions on other processes."},
+        {"name": "scatter_reverse", "signature": "scatter_reverse(mode)", "description": "Scatter ghost values back to owners.", "params": [{"name": "mode", "type": "InsertMode"}]}
+      ]
+    },
+    {
+      "name": "MatrixCSR",
+      "qualified_name": "dolfinx.la.MatrixCSR",
+      "description": "A distributed sparse matrix in CSR format. Create using dolfinx.la.matrix_csr().",
+      "properties": [
+        {"name": "data", "type": "ndarray", "description": "Non-zero values."},
+        {"name": "indices", "type": "ndarray", "description": "Column indices."},
+        {"name": "indptr", "type": "ndarray", "description": "Row pointers."},
+        {"name": "dtype", "type": "dtype"},
+        {"name": "block_size", "type": "tuple[int, int]"}
+      ],
+      "methods": [
+        {"name": "set", "signature": "set(value)", "description": "Set all entries to a value."},
+        {"name": "scatter_reverse", "signature": "scatter_reverse()", "description": "Scatter ghost row values."},
+        {"name": "squared_norm", "signature": "squared_norm()", "description": "Compute squared Frobenius norm."},
+        {"name": "add", "signature": "add(x, rows, cols, bs=1)", "description": "Add values at specified rows/columns."},
+        {"name": "finalize", "signature": "finalize()", "description": "Finalize matrix assembly (communication)."},
+        {"name": "to_dense", "signature": "to_dense()", "description": "Return dense matrix representation."},
+        {"name": "to_scipy", "signature": "to_scipy(ghosted=False)", "description": "Return SciPy CSR sparse matrix."}
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "vector",
+      "qualified_name": "dolfinx.la.vector",
+      "signature": "vector(map, bs=1, dtype=np.float64)",
+      "description": "Create a Vector.",
+      "returns": "Vector"
+    },
+    {
+      "name": "matrix_csr",
+      "qualified_name": "dolfinx.la.matrix_csr",
+      "signature": "matrix_csr(sp, block_mode=BlockMode.compact, dtype=np.float64)",
+      "description": "Create a MatrixCSR from a sparsity pattern.",
+      "returns": "MatrixCSR"
+    },
+    {
+      "name": "norm",
+      "qualified_name": "dolfinx.la.norm",
+      "signature": "norm(x, type=Norm.l2, comm=None)",
+      "description": "Compute a vector norm.",
+      "returns": "float"
+    },
+    {
+      "name": "is_orthonormal",
+      "qualified_name": "dolfinx.la.is_orthonormal",
+      "signature": "is_orthonormal(basis, eps=1e-10)",
+      "description": "Check if a set of vectors is orthonormal."
+    },
+    {
+      "name": "orthonormalize",
+      "qualified_name": "dolfinx.la.orthonormalize",
+      "signature": "orthonormalize(basis)",
+      "description": "Orthonormalize a set of vectors using Gram-Schmidt."
+    }
+  ],
+  "enums": [
+    {
+      "name": "InsertMode",
+      "qualified_name": "dolfinx.la.InsertMode",
+      "values": ["add", "insert"]
+    },
+    {
+      "name": "Norm",
+      "qualified_name": "dolfinx.la.Norm",
+      "values": ["l1", "l2", "linf"]
+    },
+    {
+      "name": "BlockMode",
+      "qualified_name": "dolfinx.la.BlockMode",
+      "values": ["compact", "expanded"]
+    }
+  ]
+}

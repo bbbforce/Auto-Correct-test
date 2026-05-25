@@ -1,0 +1,39 @@
+{
+  "module": "dolfinx.io.vtkhdf",
+  "description": "Support for VTKHDF5 file format for reading/writing meshes and data.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.io.vtkhdf.html",
+  "functions": [
+    {
+      "name": "read_mesh",
+      "qualified_name": "dolfinx.io.vtkhdf.read_mesh",
+      "signature": "read_mesh(comm, filename, dtype, gdim, max_facet_to_cell_links=1)",
+      "description": "Read a mesh from a VTKHDF format file.",
+      "params": [
+        {"name": "comm", "type": "MPI.Comm"},
+        {"name": "filename", "type": "str | Path"},
+        {"name": "dtype", "type": "dtype"},
+        {"name": "gdim", "type": "int"},
+        {"name": "max_facet_to_cell_links", "type": "int"}
+      ],
+      "returns": "Mesh"
+    },
+    {
+      "name": "write_mesh",
+      "qualified_name": "dolfinx.io.vtkhdf.write_mesh",
+      "signature": "write_mesh(filename, mesh)",
+      "description": "Write a mesh to file in VTKHDF format."
+    },
+    {
+      "name": "write_cell_data",
+      "qualified_name": "dolfinx.io.vtkhdf.write_cell_data",
+      "signature": "write_cell_data(filename, mesh, data, time)",
+      "description": "Write data at cells of the mesh."
+    },
+    {
+      "name": "write_point_data",
+      "qualified_name": "dolfinx.io.vtkhdf.write_point_data",
+      "signature": "write_point_data(filename, mesh, data, time)",
+      "description": "Write data at vertices of the mesh."
+    }
+  ]
+}

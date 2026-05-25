@@ -1,0 +1,51 @@
+{
+  "module": "dolfinx.graph",
+  "description": "Graph representations and operations on graphs, including adjacency lists and communication graph tools.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.graph.html",
+  "classes": [
+    {
+      "name": "AdjacencyList",
+      "qualified_name": "dolfinx.graph.AdjacencyList",
+      "description": "Adjacency list representation of a graph. Do not construct directly; use adjacencylist().",
+      "properties": [
+        {"name": "array", "type": "ndarray", "description": "Flattened array representation."},
+        {"name": "num_nodes", "type": "int", "description": "Number of nodes."},
+        {"name": "offsets", "type": "ndarray", "description": "Offsets for each node in the array."}
+      ],
+      "methods": [
+        {"name": "links", "signature": "links(node)", "description": "Return the neighbors of a node."}
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "adjacencylist",
+      "qualified_name": "dolfinx.graph.adjacencylist",
+      "signature": "adjacencylist(data, offsets=None)",
+      "description": "Create an AdjacencyList for int32 or int64 datasets.",
+      "params": [
+        {"name": "data", "type": "ndarray", "description": "1D or 2D adjacency array."},
+        {"name": "offsets", "type": "ndarray | None", "description": "Offsets (required if data is 1D)."}
+      ],
+      "returns": "AdjacencyList"
+    },
+    {
+      "name": "comm_graph",
+      "qualified_name": "dolfinx.graph.comm_graph",
+      "signature": "comm_graph(map, root=0)",
+      "description": "Build a parallel communication graph from an IndexMap."
+    },
+    {
+      "name": "comm_graph_data",
+      "qualified_name": "dolfinx.graph.comm_graph_data",
+      "signature": "comm_graph_data(graph)",
+      "description": "Build communication graph data for use with NetworkX."
+    },
+    {
+      "name": "comm_to_json",
+      "qualified_name": "dolfinx.graph.comm_to_json",
+      "signature": "comm_to_json(graph)",
+      "description": "Build a JSON string from a communication graph."
+    }
+  ]
+}

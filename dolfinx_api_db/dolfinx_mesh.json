@@ -1,0 +1,205 @@
+{
+  "module": "dolfinx.mesh",
+  "description": "Mesh creation, topology, geometry, refinement, and entity tagging tools.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.mesh.html",
+  "classes": [
+    {
+      "name": "Mesh",
+      "qualified_name": "dolfinx.mesh.Mesh",
+      "description": "The primary mesh container, holding topology and geometry data.",
+      "properties": [
+        {"name": "topology", "type": "Topology", "description": "Mesh topology."},
+        {"name": "geometry", "type": "Geometry", "description": "Mesh geometry (coordinates)."},
+        {"name": "comm", "type": "MPI.Comm", "description": "MPI communicator."},
+        {"name": "name", "type": "str"},
+        {"name": "ufl_domain", "description": "Return the UFL domain associated with the mesh."}
+      ]
+    },
+    {
+      "name": "MeshTags",
+      "qualified_name": "dolfinx.mesh.MeshTags",
+      "description": "Tags (integer or float markers) associated with mesh entities.",
+      "properties": [
+        {"name": "dim", "type": "int", "description": "Topological dimension of tagged entities."},
+        {"name": "indices", "type": "ndarray", "description": "Indices of tagged entities."},
+        {"name": "values", "type": "ndarray", "description": "Tag values."},
+        {"name": "dtype", "type": "dtype"},
+        {"name": "name", "type": "str"},
+        {"name": "topology", "type": "Topology"}
+      ],
+      "methods": [
+        {"name": "find", "signature": "find(value)", "description": "Return indices of entities with a given tag value."}
+      ]
+    },
+    {
+      "name": "Topology",
+      "qualified_name": "dolfinx.mesh.Topology",
+      "description": "Mesh topology: entities, connectivity, and index maps.",
+      "properties": [
+        {"name": "dim", "type": "int", "description": "Topological dimension."},
+        {"name": "cell_type", "type": "CellType"},
+        {"name": "index_map", "description": "Index map for entities."}
+      ],
+      "methods": [
+        {"name": "connectivity", "signature": "connectivity(d0, d1)", "description": "Return connectivity from entities of dim d0 to dim d1."},
+        {"name": "create_entities", "signature": "create_entities(dim)", "description": "Create mesh entities of given dimension."},
+        {"name": "create_connectivity", "signature": "create_connectivity(d0, d1)", "description": "Create connectivity between entity dimensions."}
+      ]
+    },
+    {
+      "name": "Geometry",
+      "qualified_name": "dolfinx.mesh.Geometry",
+      "description": "Mesh geometry: coordinates and DOF maps.",
+      "properties": [
+        {"name": "x", "type": "ndarray", "description": "Geometry coordinates, shape (num_points, 3)."},
+        {"name": "dim", "type": "int", "description": "Geometric dimension."},
+        {"name": "dofmap", "description": "DOF map for geometry."},
+        {"name": "cmap", "type": "CoordinateElement", "description": "Coordinate element."}
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "create_rectangle",
+      "qualified_name": "dolfinx.mesh.create_rectangle",
+      "signature": "create_rectangle(comm, points, n, cell_type=CellType.triangle, dtype=np.float64, ghost_mode=GhostMode.shared_facet, partitioner=None, diagonal=DiagonalType.right)",
+      "description": "Create a rectangular mesh.",
+      "params": [
+        {"name": "comm", "type": "MPI.Comm"},
+        {"name": "points", "type": "array-like", "description": "Two corner points [[x0,y0],[x1,y1]]."},
+        {"name": "n", "type": "array-like", "description": "[nx, ny] number of cells in each direction."},
+        {"name": "cell_type", "type": "CellType"},
+        {"name": "dtype", "type": "dtype"}
+      ],
+      "returns": "Mesh"
+    },
+    {
+      "name": "create_box",
+      "qualified_name": "dolfinx.mesh.create_box",
+      "signature": "create_box(comm, points, n, cell_type=CellType.tetrahedron, dtype=np.float64, ghost_mode=GhostMode.shared_facet, partitioner=None)",
+      "description": "Create a box mesh.",
+      "returns": "Mesh"
+    },
+    {
+      "name": "create_unit_square",
+      "qualified_name": "dolfinx.mesh.create_unit_square",
+      "signature": "create_unit_square(comm, nx, ny, cell_type=CellType.triangle, dtype=np.float64, ghost_mode=GhostMode.shared_facet, partitioner=None, diagonal=DiagonalType.right)",
+      "description": "Create a unit square mesh [0,1]x[0,1].",
+      "returns": "Mesh"
+    },
+    {
+      "name": "create_unit_cube",
+      "qualified_name": "dolfinx.mesh.create_unit_cube",
+      "signature": "create_unit_cube(comm, nx, ny, nz, cell_type=CellType.tetrahedron, dtype=np.float64, ghost_mode=GhostMode.shared_facet, partitioner=None)",
+      "description": "Create a unit cube mesh [0,1]^3.",
+      "returns": "Mesh"
+    },
+    {
+      "name": "create_interval",
+      "qualified_name": "dolfinx.mesh.create_interval",
+      "signature": "create_interval(comm, nx, points, dtype=np.float64, ghost_mode=GhostMode.shared_facet, partitioner=None)",
+      "description": "Create a 1D interval mesh.",
+      "returns": "Mesh"
+    },
+    {
+      "name": "create_unit_interval",
+      "qualified_name": "dolfinx.mesh.create_unit_interval",
+      "signature": "create_unit_interval(comm, nx, dtype=np.float64, ghost_mode=GhostMode.shared_facet, partitioner=None)",
+      "description": "Create a unit interval mesh [0,1].",
+      "returns": "Mesh"
+    },
+    {
+      "name": "create_mesh",
+      "qualified_name": "dolfinx.mesh.create_mesh",
+      "signature": "create_mesh(comm, cells, x, e, partitioner=None)",
+      "description": "Create a mesh from cell topology and point coordinates.",
+      "returns": "Mesh"
+    },
+    {
+      "name": "locate_entities",
+      "qualified_name": "dolfinx.mesh.locate_entities",
+      "signature": "locate_entities(mesh, dim, marker)",
+      "description": "Locate mesh entities using a marker function.",
+      "params": [
+        {"name": "mesh", "type": "Mesh"},
+        {"name": "dim", "type": "int"},
+        {"name": "marker", "type": "callable", "description": "Function taking point coordinates, returning boolean array."}
+      ],
+      "returns": "ndarray"
+    },
+    {
+      "name": "locate_entities_boundary",
+      "qualified_name": "dolfinx.mesh.locate_entities_boundary",
+      "signature": "locate_entities_boundary(mesh, dim, marker)",
+      "description": "Locate boundary entities using a marker function.",
+      "returns": "ndarray"
+    },
+    {
+      "name": "meshtags",
+      "qualified_name": "dolfinx.mesh.meshtags",
+      "signature": "meshtags(mesh, dim, entities, values)",
+      "description": "Create MeshTags for a set of entities.",
+      "returns": "MeshTags"
+    },
+    {
+      "name": "meshtags_from_entities",
+      "qualified_name": "dolfinx.mesh.meshtags_from_entities",
+      "signature": "meshtags_from_entities(mesh, dim, entities, values)",
+      "description": "Create MeshTags from mesh entities AdjacencyList."
+    },
+    {
+      "name": "refine",
+      "qualified_name": "dolfinx.mesh.refine",
+      "signature": "refine(mesh, edges=None, redistribute=True, ghost_mode=GhostMode.shared_facet, option=RefinementOption.none)",
+      "description": "Refine a mesh by edge bisection.",
+      "returns": "tuple[Mesh, ndarray, ndarray]"
+    },
+    {
+      "name": "transfer_meshtag",
+      "qualified_name": "dolfinx.mesh.transfer_meshtag",
+      "signature": "transfer_meshtag(meshtag, mesh1, parent_cell=None, parent_facet=None)",
+      "description": "Transfer a MeshTag from a parent mesh to a refined mesh."
+    },
+    {
+      "name": "exterior_facet_indices",
+      "qualified_name": "dolfinx.mesh.exterior_facet_indices",
+      "signature": "exterior_facet_indices(topology)",
+      "description": "Return the indices of exterior (boundary) facets.",
+      "returns": "ndarray"
+    },
+    {
+      "name": "compute_midpoints",
+      "qualified_name": "dolfinx.mesh.compute_midpoints",
+      "signature": "compute_midpoints(mesh, dim, entities)",
+      "description": "Compute midpoints of mesh entities."
+    },
+    {
+      "name": "entities_to_geometry",
+      "qualified_name": "dolfinx.mesh.entities_to_geometry",
+      "signature": "entities_to_geometry(mesh, dim, entities, orient=False)",
+      "description": "Map entity indices to geometry DOF indices."
+    }
+  ],
+  "enums": [
+    {
+      "name": "CellType",
+      "qualified_name": "dolfinx.mesh.CellType",
+      "values": ["point", "interval", "triangle", "quadrilateral", "tetrahedron", "hexahedron", "prism", "pyramid"]
+    },
+    {
+      "name": "GhostMode",
+      "qualified_name": "dolfinx.mesh.GhostMode",
+      "values": ["none", "shared_facet", "shared_vertex"]
+    },
+    {
+      "name": "DiagonalType",
+      "qualified_name": "dolfinx.mesh.DiagonalType",
+      "values": ["left", "right", "crossed", "left_right", "right_left"]
+    },
+    {
+      "name": "RefinementOption",
+      "qualified_name": "dolfinx.mesh.RefinementOption",
+      "values": ["none", "parent_facet", "parent_cell", "parent_cell_and_facet"]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "module": "dolfinx.la.petsc",
+  "description": "PETSc-specific linear algebra utility functions for creating and managing vectors.",
+  "doc_url": "https://docs.fenicsproject.org/dolfinx/main/python/generated/dolfinx.la.petsc.html",
+  "important_notes": ["PETSc objects must be manually destroyed with .destroy() to avoid memory leaks."],
+  "functions": [
+    {
+      "name": "create_vector",
+      "qualified_name": "dolfinx.la.petsc.create_vector",
+      "signature": "create_vector(map, bs=1)",
+      "description": "Create a PETSc Vec from an IndexMap.",
+      "params": [
+        {"name": "map", "type": "IndexMap"},
+        {"name": "bs", "type": "int"}
+      ],
+      "returns": "PETSc.Vec"
+    },
+    {
+      "name": "create_vector_wrap",
+      "qualified_name": "dolfinx.la.petsc.create_vector_wrap",
+      "signature": "create_vector_wrap(x)",
+      "description": "Create a PETSc Vec that wraps a dolfinx Vector (shares memory).",
+      "params": [{"name": "x", "type": "Vector"}],
+      "returns": "PETSc.Vec"
+    },
+    {
+      "name": "assign",
+      "qualified_name": "dolfinx.la.petsc.assign",
+      "signature": "assign(x, y)",
+      "description": "Assign values from y (ndarray or Vec) to x (Vec). Handles both standard and nested (VecNest) vectors.",
+      "params": [
+        {"name": "x", "type": "PETSc.Vec", "description": "Target vector."},
+        {"name": "y", "type": "ndarray | PETSc.Vec", "description": "Source values."}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "project": "DOLFINx",
+  "version": "0.11.0.dev0",
+  "source": "https://docs.fenicsproject.org/dolfinx/main/python/api.html",
+  "description": "DOLFINx Python Public User Interface API Database",
+  "modules": [
+    "dolfinx.common",
+    "dolfinx.fem",
+    "dolfinx.fem.petsc",
+    "dolfinx.geometry",
+    "dolfinx.graph",
+    "dolfinx.io",
+    "dolfinx.io.gmsh",
+    "dolfinx.io.vtkhdf",
+    "dolfinx.jit",
+    "dolfinx.la",
+    "dolfinx.la.petsc",
+    "dolfinx.la.superlu_dist",
+    "dolfinx.mesh",
+    "dolfinx.nls.petsc",
+    "dolfinx.plot"
+  ],
+  "created_at": "2026-05-15"
+}
