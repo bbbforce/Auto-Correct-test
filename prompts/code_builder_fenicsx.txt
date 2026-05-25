@@ -15,6 +15,7 @@
 【核心依赖与环境约束】
 - 必须导入：`import dolfinx`, `import ufl`, `from mpi4py import MPI`, `from petsc4py import PETSc`，如涉及复杂 3D 几何，必须导入gmsh，可视化按需导入pyvista。
 - 严禁使用任何 `dolfin` 模块。严禁使用 `solve(a==L)` 或 `plot(u)` 等老版本语法。
+- Gmsh IO 模块导入:严禁使用 `from dolfinx import io` 后接 `io.gmshio` 的过时调用形式，必须显式且独立地导入该模块：`from dolfinx.io import gmsh as gmshio`。
 
 【代码生成结构与要求】
 - 不要使用 Markdown 格式。仅返回纯 Python 代码。
@@ -22,6 +23,7 @@
    1. 定义网格与函数空间：
       - 使用 `dolfinx.mesh.create_...` (需传入 `MPI.COMM_WORLD`)。
       - 如果处理 2D 或 3D 复杂的几何结构，必须使用 `gmsh` 库生成网格，并使用 `meshio` 转换为 XDMF 格式。
+      - 在调用`gmsh.model.occ`的任何几何创建或布尔操作（如 `addBox`, `addCylinder`, `cut`, `fuse` 等）时，绝对禁止显式指定`tag`参数。
       - 使用 `dolfinx.fem.functionspace(domain, ("Lagrange", 1))` 定义空间。
    2. 定义函数空间（相场中 u/d 可合并或分离）
    3. 应用边界条件和初始条件：
@@ -29,27 +31,92 @@
       - 使用`dolfinx.fem.dirichletbc`定义狄利克雷边界。
       - 对于随时间/载荷步变化的条件，使用`dolfinx.fem.Constant`，在循环中通过`constant.value = t`更新；或定义Python回调函数配合`interpolate()`更新。  
    4. 定义弱形式与求解：
-      - 线性问题：定义 `a` 和 `L` (ufl 形式)，使用 `problem = dolfinx.fem.petsc.LinearProblem(a, L, bcs=[...])` 和 `problem.solve()`。
+      - 线性问题：定义 `a` 和 `L` (ufl 形式)，使用 `problem = dolfinx.fem.petsc.LinearProblem(a, L, bcs=[...], petsc_options_prefix="solver_", petsc_options={...})` 和 `uh = problem.solve()`。
       - 非线性问题：定义残差 `F` (使用 `dolfinx.fem.Function`)，使用 `problem = dolfinx.fem.petsc.NonlinearProblem(F, u, bcs=[...])`，并配置 `dolfinx.nls.petsc.NewtonSolver`。
    5. 如果问题是瞬态的，请包含时间步进循环
-   6. 结果保存与可视化 (关键)：
-      - 必须将结果保存为 XDMF 格式：`with dolfinx.io.XDMFFile(domain.comm, "result/output.xdmf", "w") as xdmf: xdmf.write_mesh(domain); xdmf.write_function(u, t)`
-      - 生成 PNG 截图必须使用 `pyvista` 库（严禁使用 FEniCSx 无法直接支持的 matplotlib plot）：通过 `dolfinx.plot.vtk_mesh` 提取网格并用 pyvista 渲染保存，图像必须包含标题和颜色条，并以描述性命名保存为PNG（如 von_mises_stress.png）。
-   7. 输出物理指标 (关键)：
+   6. 结果保存与可视化：
+      - 优先使用 VTXWriter 保存结果（支持高阶函数）：
+        ```python
+        from dolfinx.io import VTXWriter
+        with VTXWriter(domain.comm, os.path.join(result_dir, "output.bp"), [uh]) as vtx:
+            vtx.write(0.0)
+        ```
+      - 如果必须使用 XDMF，且求解函数阶数 > 1（如 P2），必须先插值到 P1 空间再写入：
+        ```python
+        V1 = fem.functionspace(domain, ("Lagrange", 1, (gdim,)))  # 标量问题去掉 (gdim,)
+        uh_p1 = fem.Function(V1)
+        uh_p1.interpolate(uh)
+        xdmf.write_function(uh_p1)
+        ```
+      - 生成 PNG 截图必须使用 `pyvista` 库（严禁使用 FEniCSx 无法直接支持的 matplotlib plot）离屏渲染：通过 `dolfinx.plot.vtk_mesh` 提取网格并用 pyvista 渲染保存，图像必须包含标题和颜色条，并以描述性命名保存为PNG（如 von_mises_stress.png）。
+   7. 输出物理指标：
       - 在脚本末尾，必须提取关键物理量的极值并打印。
       - 提取最大/最小值的正确语法是：`print(f"MAX_VAL: {u.x.array.max()}")`，严禁使用 `.vector().max()`。
 
 【求解器调用指南】
 - 对于线性问题（如热传导、线弹性）：
   - 必须定义双线性形式`a`和线性形式`L`。
-  - 使用 `problem = dolfinx.fem.petsc.LinearProblem(a, L, bcs=[...])`，并使用 `u = problem.solve()`。
+  - 使用 `problem = dolfinx.fem.petsc.LinearProblem(a, L, bcs=[...], petsc_options_prefix="solver_", petsc_options={...})`，并使用 `uh = problem.solve()`。
+  - `petsc_options_prefix` 是 DOLFINx 0.10.0 中必需的 keyword-only 参数，不可省略，且不能为空字符串 `""`。
 - 对于非线性问题（如超弹性、相场）：
   - 必须定义残差形式`F`（使用 `Function`）和`J = ufl.derivative(F, u, du)`。
   - 使用 `problem = dolfinx.fem.petsc.NonlinearProblem(F, u, bcs=[...], J=J)`，并使用 `solver = dolfinx.nls.petsc.NewtonSolver(MPI.COMM_WORLD, problem)`，最后使用 `n, converged = solver.solve(u)`求解。
+- 为提高数值稳定性，在除法或对数项中引入微小量（如 + ufl.DOLFIN_EPS 或自定义小参数）。
+
+【DOLFINx 0.10.0 关键 API 变更 — Breaking Changes】
+
+- LinearProblem 构造函数 (v0.10.0 breaking change):**
+   - `petsc_options_prefix` 是必需的 keyword-only 参数，不能为空字符串。
+   - 正确写法：
+     ```python
+     problem = LinearProblem(a, L_form, bcs=[bc],
+                             petsc_options_prefix="my_solver",
+                             petsc_options={"ksp_type": "cg", "pc_type": "gamg"})
+     uh = problem.solve()
+     ```
+
+- NonlinearProblem + NewtonSolver:
+   - NonlinearProblem 本身不需要 prefix，但 NewtonSolver 的 PETSc 选项通过 solver 属性配置。
+   - 正确写法：
+     ```python
+     problem = NonlinearProblem(F, u, bcs=[bc])
+     solver = NewtonSolver(MPI.COMM_WORLD, problem)
+     solver.solve(u)
+     ```
+
+- XDMF 输出限制 (write_function):
+   - `XDMFFile.write_function()` 要求函数阶数与网格阶数一致（通常为 1 阶）。
+   - P2 或更高阶函数不能直接写 XDMF，必须先插值到 P1 空间或使用 VTXWriter。
+   - 推荐使用 VTXWriter（支持任意阶函数）：
+     ```python
+     from dolfinx.io import VTXWriter
+     with VTXWriter(MPI.COMM_WORLD, "output.bp", [uh]) as vtx:
+         vtx.write(0.0)
+     ```
+   - 如果坚持用 XDMF，必须先插值：
+     ```python
+     V1 = fem.functionspace(domain, ("Lagrange", 1, (gdim,)))
+     uh_p1 = fem.Function(V1)
+     uh_p1.interpolate(uh)
+     xdmf.write_function(uh_p1)
+     ```
+
+【LinearProblem 最小可运行模板 (DOLFINx 0.10.0)】
+```python
+# === 线性问题求解模板 ===
+from dolfinx.fem.petsc import LinearProblem
+problem = LinearProblem(
+    a, L, bcs=[bc],
+    petsc_options_prefix="my_problem",
+    petsc_options={"ksp_type": "preonly", "pc_type": "lu"}
+)
+uh = problem.solve()
+```
+
+【文件保存与可视化规则】
 - 文件保存关键规则（必须使用 result_dir 变量，不得硬编码路径）：
   - 脚本顶部必须定义：`result_dir = os.environ.get("RESULT_DIR", "result")`，然后 `os.makedirs(result_dir, exist_ok=True)`。
   - 所有文件/图片保存路径必须使用 `os.path.join(result_dir, "filename.ext")`，不得出现任何硬编码的目录字符串（如 `"result/"` 或 `"./output/"`）。
   - 如果保存为 XDMF，必须使用`dolfinx.io.XDMFFile(MPI.COMM_WORLD, os.path.join(result_dir, "filename.xdmf"), "w")`。
-  - 仿真完成后，必须使用 `XDMFFile` 将关键物理量保存为 XDMF+H5 文件对，绝对禁止删除或清理伴随生成的 .h5 文件。
-- 为提高数值稳定性，在除法或对数项中引入微小量（如 + ufl.DOLFIN_EPS 或自定义小参数）。
+  - 仿真完成后，必须使用 `XDMFFile` 或 `VTXWriter` 将关键物理量保存，绝对禁止删除或清理伴随生成的 .h5 文件。
 

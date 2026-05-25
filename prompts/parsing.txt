@@ -1,7 +1,7 @@
-你将收到一个已澄清的、适用于 FEniCS 的仿真描述。
+你将收到一个已澄清的、适用于 FEniCSx 的仿真描述。
 你的任务是将这段话解析为一个结构化的 JSON 对象，捕捉代码生成所需的所有关键属性。
 
-📌 输出必须是一个包含以下字段的有效 JSON：
+ 输出必须是一个包含以下字段的有效 JSON：
 - problem_type（如 heat、fluid、elasticity、hyperelasticity、fracture）
 - pde_description（一段简短的描述性句子）
 - dimension（1、2 或 3）
@@ -18,4 +18,4 @@
 - material_properties（物理参数字典）
 - notes（可选字段，用于特殊考虑事项）
 
-📦 只输出 JSON 对象。不要包含任何解释、markdown 或代码块。
+只输出 JSON 对象。不要包含任何解释、markdown 或代码块。
